@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Book a Cleaning</title>
+<meta name="description" content="Pick a day, time and cleaner and book your home or office cleaning online.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<style>
+  header.site { background: var(--surface); border-bottom: 1px solid var(--line); }
+  header.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding-block: 14px; }
+  header.site .name { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; }
+  header.site .contact { font-size: .9rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  header.site .contact a { color: var(--fg); font-weight: 700; text-decoration: none; }
+  .hero { padding-block: 40px 28px; display: grid; gap: 10px; max-width: 760px; }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -.02em; }
+  .hero h1 em { font-style: normal; background: linear-gradient(transparent 62%, var(--lemon) 62%); padding: 0 .08em; }
+  .hero p { font-size: 1.08rem; color: var(--muted); max-width: 62ch; }
+  .services { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 10px; }
+  .svc { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 14px; cursor: pointer; display: grid; gap: 4px; }
+  .svc:hover { border-color: var(--accent); }
+  .svc strong { font-size: 1rem; }
+  .svc span { font-size: .85rem; color: var(--muted); }
+  .svc .price { font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 700; }
+  .svc[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-soft); }
+  .booker { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 24px; align-items: start; padding-block: 8px 64px; }
+  @media (max-width: 860px) { .booker { grid-template-columns: minmax(0, 1fr); } }
+  .booker > .panel { position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); }
+  @media (max-width: 860px) { .booker > .panel { position: static; } }
+  .steps { display: grid; gap: 26px; }
+  .summary { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px; font-size: .92rem; }
+  .summary div { display: flex; justify-content: space-between; gap: 10px; }
+  .summary span:first-child { color: var(--muted); }
+  .done { max-width: 640px; margin: 40px auto 80px; display: grid; gap: 16px; text-align: center; justify-items: center; }
+  .done .check { width: 64px; height: 64px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: grid; place-items: center; font-size: 2rem; font-weight: 800; }
+  .done .panel { text-align: left; width: 100%; }
+  .done .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  footer { border-top: 1px solid var(--line); padding-block: 20px; font-size: .82rem; color: var(--muted); }
+  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<header class="site"><div class="wrap">
+  <span class="name" id="bizName">Book a cleaning</span>
+  <span class="contact" id="contact"></span>
+</div></header>
+
+<main id="main" class="wrap">
+  <section class="hero">
+    <div class="eyebrow" id="area"></div>
+    <h1>Book your cleaning in <em>under a minute</em>.</h1>
+    <p id="intro">Choose a service, pick a day and time that suits you, and choose your cleaner. You'll get a confirmation right away.</p>
+  </section>
+  <div id="app"><div class="empty">Loading open times…</div></div>
+</main>
+
+<footer><div class="wrap"><span id="foot"></span><a href="admin.html">Staff sign-in</a></div></footer>
+<div id="toast" hidden></div>
+
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/availability.js"></script>
+<script>
+(() => {
+  const A = window.Avail;
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const money = n => "$" + (Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const fmtTime = t => { const h = Math.floor(t / 60), m = t % 60; return ((h % 12) || 12) + ":" + A.pad(m) + (h < 12 ? " am" : " pm"); };
+  const longDay = ds => A.parseYmd(ds).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  let toastT; const toast = m => { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3500); };
+
+  const fb = window.startFirebase();
+  if (!fb) { $("#app").innerHTML = `<div class="banner info"><span><strong>Almost ready.</strong> This booking site isn't connected to its database yet. Follow the setup steps in README.md.</span></div>`; return; }
+  const db = fb.db;
+
+  const S = {
+    cfg: A.settings(null), cleaners: [], taken: new Set(), holdsReady: false,
+    month: null, service: null, date: null, start: null, cleaner: "any",
+    form: { name: "", phone: "", email: "", address: "", access: "", notes: "" }, busy: false, done: null,
+  };
+  const n0 = new Date(); S.month = new Date(n0.getFullYear(), n0.getMonth(), 1);
+  const svc = () => S.cfg.services.find(s => s.name === S.service);
+
+  function renderHeader() {
+    const c = S.cfg;
+    document.title = c.name ? `Book a Cleaning · ${c.name}` : "Book a Cleaning";
+    $("#bizName").textContent = c.name || "Book a cleaning";
+    $("#area").textContent = c.area ? `Serving ${c.area}` : "";
+    if (c.intro) $("#intro").textContent = c.intro;
+    $("#contact").innerHTML = [c.phone && `Call or text <a href="tel:${esc(c.phone.replace(/[^+\d]/g, ""))}">${esc(c.phone)}</a>`, c.email && `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`].filter(Boolean).join("");
+    $("#foot").textContent = `© ${new Date().getFullYear()} ${c.name || ""}`.trim();
+  }
+
+  function slotsOn(ds) { const s = svc(); return s ? A.slotsFor(ds, s.hours, S.cleaners, S.taken, S.cfg, new Date()) : []; }
+
+  function render() {
+    renderHeader();
+    if (S.done) return renderDone();
+    const s = svc();
+    const today = A.ymd(new Date());
+    const y = S.month.getFullYear(), mo = S.month.getMonth();
+    const lead = (S.month.getDay() + 6) % 7, nDays = new Date(y, mo + 1, 0).getDate();
+    const atStart = y === n0.getFullYear() && mo === n0.getMonth();
+    const lastDay = A.ymd(new Date(Date.now() + S.cfg.maxDaysAhead * 86400000));
+    const atEnd = A.ymd(new Date(y, mo + 1, 1)) > lastDay;
+    let cells = "";
+    for (let i = 0; i < lead; i++) cells += `<span class="cal-blank"></span>`;
+    for (let d = 1; d <= nDays; d++) {
+      const ds = A.ymd(new Date(y, mo, d));
+      const out = ds < today || ds > lastDay;
+      const open = !s || out || !S.holdsReady ? 0 : slotsOn(ds).filter(x => x.free.length).length;
+      const disabled = out || !s || (S.holdsReady && !open);
+      cells += `<button type="button" class="cal-day ${ds === today ? "today" : ""} ${ds === S.date ? "sel" : ""} ${s && !out && S.holdsReady && !open ? "full" : ""}" data-act="day" data-date="${ds}" ${disabled ? "disabled" : ""} aria-label="${esc(longDay(ds))}${s && !out ? `, ${open} open times` : ""}">${d}${s && !out && S.holdsReady ? `<small>${open ? open + " open" : "full"}</small>` : ""}</button>`;
+    }
+    const slots = S.date && s ? slotsOn(S.date) : [];
+    const slot = slots.find(x => x.t === S.start && x.free.length);
+    if (!slot && !S.busy) S.start = null;
+    const freeIds = slot ? slot.free.map(c => c.id) : [];
+    if (S.cleaner !== "any" && !freeIds.includes(S.cleaner)) S.cleaner = "any";
+    const chosen = S.cleaner === "any" ? null : S.cleaners.find(c => c.id === S.cleaner);
+    const f = S.form;
+    const ready = s && slot && f.name.trim() && f.phone.trim().length >= 7 && f.address.trim();
+
+    $("#app").innerHTML = `
+    <div class="steps" style="margin-bottom:26px">
+      <div class="step"><h3><span class="n">1</span>What do you need?</h3>
+        <div class="services">${S.cfg.services.map(x => `<button type="button" class="svc" data-act="svc" data-name="${esc(x.name)}" aria-pressed="${x.name === S.service}">
+          <strong>${esc(x.name)}</strong><span>About ${esc(x.hours)} hours</span>${x.from ? `<span>From <span class="price">${money(x.from)}</span></span>` : ""}</button>`).join("")}</div>
+      </div>
+    </div>
+    <div class="booker">
+      <div class="panel">
+        <div class="step"><h3><span class="n">2</span>Pick a day</h3>
+          <div class="cal-head"><button class="btn small" data-act="month" data-d="-1" type="button" aria-label="Previous month" ${atStart ? "disabled" : ""}>←</button><strong>${esc(S.month.toLocaleDateString(undefined, { month: "long", year: "numeric" }))}</strong><button class="btn small" data-act="month" data-d="1" type="button" aria-label="Next month" ${atEnd ? "disabled" : ""}>→</button></div>
+          <div class="cal-grid">${["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map(d => `<span class="cal-dow">${d}</span>`).join("")}${cells}</div>
+          ${s ? "" : `<p class="note">Choose a service first to see open days.</p>`}
+        </div>
+        <div class="summary">
+          <div><span>Service</span><span>${esc(s?.name || "–")}</span></div>
+          <div><span>Day</span><span>${S.date ? esc(A.parseYmd(S.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })) : "–"}</span></div>
+          <div><span>Time</span><span>${slot ? esc(fmtTime(S.start)) : "–"}</span></div>
+          <div><span>Cleaner</span><span>${slot ? esc(chosen?.name || "First available") : "–"}</span></div>
+          ${s?.from ? `<div><span>Estimate</span><span>from ${money(s.from)}</span></div>` : ""}
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step"><h3><span class="n">3</span>Pick a time</h3>
+          ${!s ? `<div class="empty">Choose a service above.</div>` : !S.date ? `<div class="empty">Choose a day on the calendar to see open times.</div>`
+          : slots.some(x => x.free.length) ? `<div class="picked">${esc(longDay(S.date))}</div><div class="slots">${slots.map(x => `<button type="button" class="slot ${x.t === S.start ? "sel" : ""}" data-act="slot" data-t="${x.t}" ${x.free.length ? "" : "disabled"}><span>${esc(fmtTime(x.t))}</span><small>${x.free.length ? (x.free.length === 1 ? "1 cleaner" : x.free.length + " cleaners") : "taken"}</small></button>`).join("")}</div>`
+          : `<div class="empty">That day just filled up. Please pick another day.</div>`}
+        </div>
+        <div class="step"><h3><span class="n">4</span>Choose your cleaner</h3>
+          <div class="field"><label for="cleaner">Cleaner</label>
+            <select id="cleaner" data-f="cleaner" ${slot ? "" : "disabled"}>
+              ${slot ? `<option value="any">First available (${freeIds.length} free)</option>${S.cleaners.filter(c => c.active !== false).map(c => `<option value="${esc(c.id)}" ${freeIds.includes(c.id) ? "" : "disabled"} ${S.cleaner === c.id ? "selected" : ""}>${esc(c.name)}${freeIds.includes(c.id) ? "" : " · not available at this time"}</option>`).join("")}` : `<option>Pick a time first</option>`}
+            </select></div>
+        </div>
+        <form class="step" id="details" novalidate><h3><span class="n">5</span>Your details</h3>
+          <div class="grid2"><div class="field"><label for="f-name">Your name</label><input id="f-name" data-f="name" autocomplete="name" value="${esc(f.name)}" required maxlength="100"></div>
+            <div class="field"><label for="f-phone">Mobile phone</label><input id="f-phone" data-f="phone" type="tel" autocomplete="tel" value="${esc(f.phone)}" required maxlength="30"></div></div>
+          <div class="grid2"><div class="field"><label for="f-email">Email (for your confirmation)</label><input id="f-email" data-f="email" type="email" autocomplete="email" value="${esc(f.email)}" maxlength="120"></div>
+            <div class="field"><label for="f-address">Address to clean</label><input id="f-address" data-f="address" autocomplete="street-address" value="${esc(f.address)}" required maxlength="200"></div></div>
+          <div class="field"><label for="f-access">How do we get in? (optional)</label><input id="f-access" data-f="access" value="${esc(f.access)}" placeholder="I'll be home, lockbox, door code, pets" maxlength="300"></div>
+          <div class="field"><label for="f-notes">Anything we should know? (optional)</label><textarea id="f-notes" data-f="notes" maxlength="1000" placeholder="Rooms to focus on, products to avoid, parking">${esc(f.notes)}</textarea></div>
+          <div><button class="btn primary big" type="submit" id="bookBtn" ${ready && !S.busy ? "" : "disabled"}>${S.busy ? "Booking…" : slot ? `Book ${esc(A.parseYmd(S.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }))} at ${esc(fmtTime(S.start))}` : "Pick a time to book"}</button></div>
+          <p class="note">${s?.from ? `Estimate from ${money(s.from)}. Final price is confirmed by us before your visit.` : "We'll confirm your price before your visit."}</p>
+        </form>
+      </div>
+    </div>`;
+  }
+
+  function icsFile(d) {
+    const st = A.parseYmd(d.date); st.setMinutes(d.startMin);
+    const en = new Date(st.getTime() + d.hours * 3600000);
+    const f = x => x.getUTCFullYear() + A.pad(x.getUTCMonth() + 1) + A.pad(x.getUTCDate()) + "T" + A.pad(x.getUTCHours()) + A.pad(x.getUTCMinutes()) + "00Z";
+    const clean = s => String(s).replace(/[,;\\]/g, " ").replace(/\n/g, " ");
+    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//cleaning-booking//EN", "BEGIN:VEVENT", `UID:${d.id}@booking`, `DTSTAMP:${f(new Date())}`, `DTSTART:${f(st)}`, `DTEND:${f(en)}`,
+      `SUMMARY:${clean(d.service + (S.cfg.name ? " – " + S.cfg.name : ""))}`, `LOCATION:${clean(d.address)}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+  }
+
+  function renderDone() {
+    const d = S.done;
+    const url = URL.createObjectURL(new Blob([icsFile(d)], { type: "text/calendar" }));
+    $("#app").innerHTML = `<section class="done">
+      <div class="check" aria-hidden="true">✓</div>
+      <h2>You're booked, ${esc(d.first)}!</h2>
+      <p>${esc(d.service)} on <strong>${esc(longDay(d.date))}</strong> at <strong>${esc(fmtTime(d.startMin))}</strong> with ${esc(d.cleaner)}.</p>
+      <div class="panel"><div class="summary" style="border:0;margin:0;padding:0">
+        <div><span>Address</span><span>${esc(d.address)}</span></div>
+        <div><span>Length</span><span>About ${esc(d.hours)} hours</span></div>
+        <div><span>Booking number</span><span style="font-family:var(--f-mono)">${esc(d.id.slice(0, 8).toUpperCase())}</span></div>
+      </div></div>
+      <p class="note">We'll contact you at ${esc(d.phone)} to confirm the price.${S.cfg.phone ? ` To change or cancel, call or text ${esc(S.cfg.phone)}.` : ""}</p>
+      <div class="actions"><a class="btn primary" href="${url}" download="cleaning-${esc(d.date)}.ics">Add to my calendar</a><button class="btn" data-act="again" type="button">Book another cleaning</button></div>
+    </section>`;
+    window.scrollTo(0, 0);
+  }
+
+  async function book() {
+    const s = svc(); if (!s || !S.date || S.start == null || S.busy) return;
+    const date = S.date, start = S.start; // the live calendar can change while we save
+    const f = S.form;
+    if (!f.name.trim() || f.phone.replace(/\D/g, "").length < 7 || !f.address.trim()) { toast("Please fill in your name, phone number and address."); return; }
+    const slot = slotsOn(date).find(x => x.t === start);
+    const free = slot ? slot.free : [];
+    if (!free.length) { toast("Sorry, that time was just taken. Please pick another."); S.start = null; return render(); }
+    // "First available": try each free cleaner in turn so a race on one doesn't fail the booking.
+    const order = S.cleaner === "any" ? free : free.filter(c => c.id === S.cleaner);
+    S.busy = true; render();
+    const blocks = A.blockMins(s.hours, S.cfg.buffer);
+    for (const c of order) {
+      const ref = db.collection("jobs").doc();
+      const holds = A.holdIds(c.id, date, start, blocks);
+      const batch = db.batch();
+      batch.set(ref, {
+        source: "online", status: "new", date: date, start: A.hm(start), startMin: start, duration: Number(s.hours), blockMins: blocks,
+        service: s.name, staff: [c.id], notes: f.notes.trim(), holds, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        customer: { name: f.name.trim(), phone: f.phone.trim(), email: f.email.trim(), address: f.address.trim(), access: f.access.trim() },
+      });
+      holds.forEach((id, i) => batch.set(db.collection("holds").doc(id), { jobId: ref.id, cleanerId: c.id, date: date, t: start + i * A.HOLD }));
+      try {
+        await batch.commit();
+        S.done = { id: ref.id, first: f.name.trim().split(/\s+/)[0], service: s.name, date: date, startMin: start, hours: s.hours, cleaner: c.name, address: f.address.trim(), phone: f.phone.trim() };
+        S.busy = false; return render();
+      } catch (e) {
+        if (e.code !== "permission-denied") { S.busy = false; render(); toast("We couldn't reach the booking system. Check your connection and try again."); return; }
+      }
+    }
+    S.busy = false; S.start = null; render();
+    toast("Sorry, that time was just taken. Please pick another.");
+  }
+
+  document.addEventListener("click", ev => {
+    const el = ev.target.closest("[data-act]"); if (!el) return;
+    const a = el.dataset.act;
+    if (a === "svc") { S.service = el.dataset.name; S.start = null; return render(); }
+    if (a === "month") { S.month = new Date(S.month.getFullYear(), S.month.getMonth() + Number(el.dataset.d), 1); S.date = null; S.start = null; watchHolds(); return render(); }
+    if (a === "day") { S.date = el.dataset.date; S.start = null; render(); document.querySelector(".slots, .step:nth-child(1) .empty")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
+    if (a === "slot") { S.start = Number(el.dataset.t); return render(); }
+    if (a === "again") { S.done = null; S.date = null; S.start = null; S.cleaner = "any"; return render(); }
+  });
+  document.addEventListener("input", ev => {
+    const k = ev.target.dataset.f; if (!k || k === "cleaner") return;
+    S.form[k] = ev.target.value;
+    const s = svc(), f = S.form, btn = $("#bookBtn");
+    if (btn) btn.disabled = !(s && S.start != null && f.name.trim() && f.phone.trim().length >= 7 && f.address.trim()) || S.busy;
+  });
+  document.addEventListener("change", ev => { if (ev.target.dataset.f === "cleaner") { S.cleaner = ev.target.value; render(); } });
+  document.addEventListener("submit", ev => { ev.preventDefault(); book(); });
+
+  let unwatch = null;
+  function watchHolds() {
+    unwatch?.();
+    S.holdsReady = false;
+    const first = A.ymd(S.month), last = A.ymd(new Date(S.month.getFullYear(), S.month.getMonth() + 1, 0));
+    unwatch = db.collection("holds").where("date", ">=", first).where("date", "<=", last).onSnapshot(snap => {
+      S.taken = new Set(snap.docs.map(d => d.id)); S.holdsReady = true;
+      if (!document.activeElement?.matches?.("input, textarea")) render();
+    }, () => { $("#app").innerHTML = `<div class="banner bad">We couldn't load open times. Please refresh the page${S.cfg.phone ? ` or call ${esc(S.cfg.phone)}` : ""}.</div>`; });
+  }
+
+  Promise.all([db.doc("public/settings").get(), db.collection("publicCleaners").where("active", "==", true).get()]).then(([set, cl]) => {
+    S.cfg = A.settings(set.exists ? set.data() : null);
+    S.cleaners = cl.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name));
+    if (!S.cleaners.length) { renderHeader(); $("#app").innerHTML = `<div class="empty">Online booking isn't open yet.${S.cfg.phone ? ` Please call or text ${esc(S.cfg.phone)} to book.` : ""}</div>`; return; }
+    render(); watchHolds();
+  }).catch(() => { $("#app").innerHTML = `<div class="banner bad">We couldn't load the booking calendar. Please refresh the page.</div>`; });
+})();
+</script>
+</body>
+</html>

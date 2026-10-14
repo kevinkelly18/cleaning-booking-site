@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Crew HQ · Staff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: operations app — top bar with business name + tabs, one working panel below. Cool rinse-water neutrals, cobalt action color, lemon marks "today". */
+:root {
+  --bg: #f3f6f8;
+  --surface: #ffffff;
+  --sunk: #e8eef2;
+  --line: #d3dde4;
+  --fg: #142430;
+  --muted: #587080;
+  --accent: #1f4fd1;
+  --accent-fg: #ffffff;
+  --accent-soft: #e3eafc;
+  --lemon: #f6e27a;
+  --lemon-fg: #3a3000;
+  --ok: #17794a;
+  --ok-soft: #dcf2e6;
+  --warn: #9a5b00;
+  --warn-soft: #fbecd2;
+  --bad: #b3261e;
+  --bad-soft: #fbe2df;
+  --shadow: 0 1px 2px rgba(20,36,48,.06), 0 4px 16px rgba(20,36,48,.06);
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e171d; --surface: #15222b; --sunk: #1b2b35; --line: #2a3d4a; --fg: #e4edf2; --muted: #93a9b7;
+  --accent: #7f9fff; --accent-fg: #0b1430; --accent-soft: #1f2d55; --lemon: #e9d35e; --lemon-fg: #2a2200;
+  --ok: #5fd39a; --ok-soft: #173a2a; --warn: #f0b45a; --warn-soft: #3d2c12; --bad: #ff8a80; --bad-soft: #43201d;
+  --shadow: 0 1px 2px rgba(0,0,0,.3); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0e171d; --surface: #15222b; --sunk: #1b2b35; --line: #2a3d4a; --fg: #e4edf2; --muted: #93a9b7;
+  --accent: #7f9fff; --accent-fg: #0b1430; --accent-soft: #1f2d55; --lemon: #e9d35e; --lemon-fg: #2a2200;
+  --ok: #5fd39a; --ok-soft: #173a2a; --warn: #f0b45a; --warn-soft: #3d2c12; --bad: #ff8a80; --bad-soft: #43201d;
+  --shadow: 0 1px 2px rgba(0,0,0,.3); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.45; }
+button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; line-height: 1.15; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* top bar */
+.top { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.top .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding-block: 12px 0; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1 1 auto; }
+.brand h1 { font-size: 1.4rem; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand .rename { font-size: .8rem; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 2px 4px; text-decoration: underline; }
+.clock { font-family: var(--f-mono); font-size: .85rem; color: var(--muted); }
+nav.tabs { display: flex; gap: 4px; width: 100%; overflow-x: auto; }
+nav.tabs button { border: 0; background: none; padding: 10px 14px; cursor: pointer; font-weight: 700; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+nav.tabs button:hover { color: var(--fg); }
+
+main { padding-block: 24px 64px; display: grid; gap: 28px; }
+.section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.section-head h2 { font-size: 1.25rem; font-weight: 800; }
+.eyebrow { text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; font-weight: 700; color: var(--muted); }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: 999px; cursor: pointer; font-weight: 700; font-size: .9rem; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn.ok { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.btn.danger { color: var(--bad); border-color: var(--bad); background: transparent; }
+.btn.danger.armed { background: var(--bad); color: var(--surface); }
+.btn.small { padding: 5px 11px; font-size: .82rem; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.link { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font-weight: 700; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* stats */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
+.stat .v { font-family: var(--f-display); font-size: 1.9rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat .l { color: var(--muted); font-size: .85rem; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
+.two { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); gap: 24px; align-items: start; }
+@media (max-width: 900px) { .two { grid-template-columns: minmax(0,1fr); } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
+.empty { color: var(--muted); padding: 18px; text-align: center; border: 1px dashed var(--line); border-radius: var(--r); background: var(--surface); }
+
+/* job card */
+.job { display: grid; gap: 4px; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.job:hover { border-color: var(--accent); }
+.job.done { border-left-color: var(--ok); }
+.job.cancelled { border-left-color: var(--line); opacity: .6; }
+.job.cancelled .who { text-decoration: line-through; }
+.job .row1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.job .t { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.job .who { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.job .meta { font-size: .84rem; color: var(--muted); overflow-wrap: anywhere; }
+.job .price { font-variant-numeric: tabular-nums; font-weight: 700; font-size: .9rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: .74rem; padding: 2px 8px; border-radius: 999px; background: var(--sunk); color: var(--fg); }
+.chip.none { background: var(--warn-soft); color: var(--warn); }
+.pill { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; }
+.pill.scheduled { background: var(--accent-soft); color: var(--accent); }
+.pill.done { background: var(--ok-soft); color: var(--ok); }
+.pill.cancelled { background: var(--sunk); color: var(--muted); }
+.pill.on { background: var(--ok-soft); color: var(--ok); }
+.pill.off { background: var(--sunk); color: var(--muted); }
+.list { display: grid; gap: 8px; }
+
+/* week */
+.weeknav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.weeknav .label { font-family: var(--f-display); font-weight: 700; min-width: 13ch; text-align: center; }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; }
+.day { background: var(--sunk); border-radius: var(--r); padding: 8px; display: grid; gap: 6px; align-content: start; min-height: 180px; min-width: 0; }
+.day h3 { font-size: .95rem; display: flex; justify-content: space-between; align-items: baseline; padding: 2px 4px; }
+.day h3 small { font-family: var(--f-body); font-weight: 400; color: var(--muted); font-size: .78rem; }
+.day.today h3 { background: var(--lemon); color: var(--lemon-fg); border-radius: 6px; }
+.day.today h3 small { color: var(--lemon-fg); }
+.day .add { border: 1px dashed var(--line); background: transparent; border-radius: 8px; padding: 6px; color: var(--muted); cursor: pointer; font-size: .82rem; }
+.day .add:hover { color: var(--accent); border-color: var(--accent); }
+.week .job { padding: 8px 9px; }
+.week .job .meta.addr { display: none; }
+@media (max-width: 980px) { .week { grid-template-columns: minmax(0,1fr); } .day { min-height: 0; } .week .job .meta.addr { display: block; } }
+
+/* clients */
+.search { width: min(100%, 340px); padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+.ccard { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; cursor: pointer; display: grid; gap: 6px; align-content: start; }
+.ccard:hover { border-color: var(--accent); }
+.ccard h3 { font-size: 1.05rem; overflow-wrap: anywhere; }
+.ccard .line { font-size: .88rem; color: var(--muted); overflow-wrap: anywhere; }
+.ccard .access { font-size: .84rem; background: var(--warn-soft); color: var(--warn); padding: 4px 8px; border-radius: 6px; }
+.ccard .next { font-size: .84rem; border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px; }
+
+/* team */
+.emp { display: grid; gap: 8px; }
+.emp .top-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.emp h3 { font-size: 1.05rem; }
+.emp .since { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.emp .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--sunk); }
+td.zero { color: var(--muted); }
+tfoot td { font-weight: 700; border-bottom: 0; }
+td.open { color: var(--ok); font-weight: 700; }
+tr.click { cursor: pointer; }
+tr.click:hover td { background: var(--sunk); }
+
+/* banners & toast */
+.banner { background: var(--lemon); color: var(--lemon-fg); border-radius: var(--r); padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.banner .btn { background: transparent; border-color: var(--lemon-fg); color: var(--lemon-fg); }
+.banner.info { background: var(--accent-soft); color: var(--fg); }
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 700; z-index: 30; max-width: calc(100% - 32px); }
+
+/* dialog */
+dialog { border: 0; border-radius: 14px; padding: 0; width: min(560px, calc(100% - 24px)); max-height: calc(100% - 24px); background: var(--surface); color: var(--fg); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog::backdrop { background: rgba(10,20,28,.5); }
+dialog form { display: grid; gap: 14px; padding: 20px; }
+dialog h2 { font-size: 1.3rem; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label, .field .lbl { font-size: .82rem; font-weight: 700; color: var(--muted); }
+.field input, .field select, .field textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.field textarea { min-height: 70px; resize: vertical; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+@media (max-width: 480px) { .grid2, .grid3 { grid-template-columns: minmax(0,1fr); } }
+.checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.checks label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; font-size: .88rem; }
+.checks input { accent-color: var(--accent); }
+.dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding-top: 14px; }
+.dlg-actions .right { display: flex; gap: 8px; margin-left: auto; }
+.history { font-size: .86rem; display: grid; gap: 4px; background: var(--sunk); border-radius: 8px; padding: 10px; }
+.history div { display: flex; justify-content: space-between; gap: 8px; }
+.note { font-size: .82rem; color: var(--muted); }
+/* booking */
+.book { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .book { grid-template-columns: minmax(0, 1fr); } }
+.cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.cal-head strong { font-family: var(--f-display); font-size: 1.05rem; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-dow { font-size: .7rem; text-align: center; color: var(--muted); font-weight: 700; text-transform: uppercase; padding: 4px 0; }
+.cal-day { aspect-ratio: 1; max-width: 100%; border: 0; background: var(--sunk); border-radius: 8px; cursor: pointer; display: grid; place-content: center; padding: 2px; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 1.1; }
+.cal-day small { font-size: .62rem; font-weight: 400; color: var(--ok); }
+.cal-day.full small { color: var(--bad); }
+.cal-day:hover:not(:disabled) { box-shadow: inset 0 0 0 2px var(--accent); }
+.cal-day:disabled { background: transparent; color: var(--muted); cursor: default; opacity: .45; }
+.cal-day.today { box-shadow: inset 0 0 0 2px var(--lemon); }
+.cal-day.sel, .cal-day.sel:hover { background: var(--accent); color: var(--accent-fg); box-shadow: none; }
+.cal-day.sel small { color: var(--accent-fg); }
+.cal-blank { aspect-ratio: 1; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: .78rem; color: var(--muted); }
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+.slot { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 4px; cursor: pointer; text-align: center; font-family: var(--f-mono); font-size: .85rem; }
+.slot small { display: block; font-family: var(--f-body); font-size: .7rem; color: var(--muted); }
+.slot:hover:not(:disabled) { border-color: var(--accent); }
+.slot:disabled { opacity: .4; cursor: not-allowed; }
+.slot:disabled span { text-decoration: line-through; }
+.slot.sel, .slot.sel:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.slot.sel small { color: var(--accent-fg); }
+.steps { display: grid; gap: 22px; }
+.step { display: grid; gap: 10px; }
+.step > h3 { font-size: 1rem; display: flex; gap: 8px; align-items: center; }
+.step > h3 .n { width: 24px; height: 24px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: inline-grid; place-items: center; font-size: .8rem; font-family: var(--f-body); }
+.picked { font-size: .9rem; background: var(--sunk); border-radius: 8px; padding: 8px 12px; }
+.confirm { display: grid; gap: 14px; max-width: 640px; }
+.confirm textarea { width: 100%; min-height: 120px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.confirm .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (prefers-reduced-motion: no-preference) { .job, .ccard, .btn { transition: border-color .15s, background .15s; } }
+html, body { margin: 0; }
+.account { display: flex; gap: 8px; align-items: center; font-size: .82rem; color: var(--muted); }
+.pill.new { background: var(--warn-soft); color: var(--warn); }
+.job.new { border-left-color: var(--warn); }
+.panel.online { display: grid; gap: 6px; border-color: var(--warn); }
+.panel.online .top-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.panel.online .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.signin { max-width: 520px; margin: 40px auto; display: grid; gap: 14px; }
+.signin h2 { font-size: 1.5rem; }
+.staffrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><h1 id="bizName">Cleaning Crew HQ</h1><button class="rename" data-act="rename" type="button">Settings</button></div>
+    <span class="clock" id="nowClock"></span>
+    <span class="account"><span id="me"></span><button class="btn small" id="signOut" type="button" hidden>Sign out</button></span>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="overview" aria-selected="true" type="button">Today</button>
+      <button role="tab" data-tab="book" aria-selected="false" type="button">Book</button>
+      <button role="tab" data-tab="schedule" aria-selected="false" type="button">Schedule</button>
+      <button role="tab" data-tab="clients" aria-selected="false" type="button">Clients</button>
+      <button role="tab" data-tab="team" aria-selected="false" type="button">Team &amp; Time</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <div class="banner info" id="loading">Loading your jobs, clients and timesheets…</div>
+</main>
+
+<dialog id="dlg"><form id="dlgForm" method="dialog" novalidate></form></dialog>
+<div id="toast" hidden></div>
+
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-auth-compat.js"></script>
+<script src="vendor/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/availability.js"></script>
+<script>
+(() => {
+  const A = window.Avail;
+  let SERVICES = A.DEFAULT_SERVICES.map(x => x.name);
+  let SERVICE_HOURS = Object.fromEntries(A.DEFAULT_SERVICES.map(x => [x.name, x.hours]));
+  let SERVICE_FROM = Object.fromEntries(A.DEFAULT_SERVICES.map(x => [x.name, x.from]));
+  const S = {
+    clients: [], employees: [], jobs: [], shifts: [], staffList: [], biz: null, me: null, role: null,
+    tab: "overview", week: mondayOf(new Date()), tsWeek: mondayOf(new Date()), q: "", bk: null,
+    db: null, canWrite: true, loaded: { clients: false, employees: false, jobs: false, shifts: false }
+  };
+  try { const t = localStorage.getItem("crewhq.tab"); if (t) S.tab = t; } catch (e) {}
+
+  /* ---------- helpers ---------- */
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function mondayOf(d) { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+  function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function ymd(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parseYmd(s) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+  function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  function money(n) { return "$" + (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  function hrs(n) { return (Math.round(n * 100) / 100).toFixed(2); }
+  function fmtTime(hm) { if (!hm) return ""; const [h, m] = hm.split(":").map(Number); return ((h % 12) || 12) + ":" + pad(m) + (h < 12 ? " am" : " pm"); }
+  function fmtClock(d) { return fmtTime(pad(d.getHours()) + ":" + pad(d.getMinutes())); }
+  function fmtDay(d) { return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }); }
+  function endTime(job) { if (!job.start) return ""; const [h, m] = job.start.split(":").map(Number); const t = h * 60 + m + Math.round((Number(job.duration) || 0) * 60); return fmtTime(pad(Math.floor(t / 60) % 24) + ":" + pad(t % 60)); }
+  function toLocalInput(iso) { if (!iso) return ""; const d = new Date(iso); return ymd(d) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function shiftHours(s, now = Date.now()) { const a = Date.parse(s.in); const b = s.out ? Date.parse(s.out) : now; return Math.max(0, (b - a) / 3600000); }
+  const byId = (arr, id) => arr.find(x => x.id === id);
+  const jobClient = j => byId(S.clients, j.clientId) || (j.customer ? { ...j.customer, online: true } : null);
+  const stripId = ({ id, ...rest }) => rest;
+  const empName = id => byId(S.employees, id)?.name || "Former employee";
+  const $ = sel => document.querySelector(sel);
+
+  /* availability */
+  const DOW = [[1, "Mon"], [2, "Tue"], [3, "Wed"], [4, "Thu"], [5, "Fri"], [6, "Sat"], [0, "Sun"]];
+  const DEFAULT_DAYS = [1, 2, 3, 4, 5, 6];
+  const mins = hm => { const [h, m] = String(hm || "0:0").split(":").map(Number); return h * 60 + (m || 0); };
+  const hm = t => pad(Math.floor(t / 60)) + ":" + pad(t % 60);
+  function bizCfg() { return A.settings(S.biz); }
+  function serviceOptions(current) { const list = SERVICES.includes(current) || !current ? SERVICES : [...SERVICES, current]; return list.map(x => `<option ${x === current ? "selected" : ""}>${esc(x)}</option>`).join(""); }
+  function freshBooking() { const n = new Date(); return { month: new Date(n.getFullYear(), n.getMonth(), 1), date: null, start: null, service: SERVICES[0], duration: SERVICE_HOURS[SERVICES[0]], cleaner: "any", clientId: "", price: "", notes: "", name: "", phone: "", email: "", address: "", access: "", done: null, busy: false }; }
+  S.bk = freshBooking();
+  let JMAP = new Map();
+  function buildJobMap() { JMAP = new Map(); for (const j of S.jobs) { if (j.status === "cancelled") continue; if (!JMAP.has(j.date)) JMAP.set(j.date, []); JMAP.get(j.date).push(j); } }
+  function empFree(e, ds, t, dur) {
+    if (e.active === false) return false;
+    const cfg = bizCfg();
+    if (!(e.days || DEFAULT_DAYS).includes(parseYmd(ds).getDay())) return false;
+    if (t < mins(e.from || cfg.open) || t + dur > mins(e.to || cfg.close)) return false;
+    // Same rule as the customer site: a job blocks its cleaner from its start until its end plus travel time.
+    const need = A.blockMins(dur / 60, cfg.buffer);
+    return !(JMAP.get(ds) || []).some(j => (j.staff || []).includes(e.id) && t < mins(j.start) + A.blockMins(j.duration, cfg.buffer) && t + need > mins(j.start));
+  }
+  function slotsFor(ds, dur) {
+    const cfg = bizCfg(), n = new Date(), nowM = ds === ymd(n) ? n.getHours() * 60 + n.getMinutes() : -1, out = [];
+    for (let t = mins(cfg.open); t + dur <= mins(cfg.close); t += cfg.step) {
+      if (t <= nowM) continue;
+      out.push({ t, free: S.employees.filter(e => empFree(e, ds, t, dur)) });
+    }
+    return out;
+  }
+  function jobsOnDayFor(id, ds) { return (JMAP.get(ds) || []).filter(j => (j.staff || []).includes(id)).length; }
+
+  let toastTimer;
+  function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 2800); }
+  async function guard(p, okMsg) {
+    try { await p; if (okMsg) toast(okMsg); return true; }
+    catch (e) {
+      console.error(e);
+      if (e?.code === "permission-denied") toast("You don't have permission to change this. Ask the owner.");
+      else if (e?.code === "resource-exhausted") toast("The database is over its free limit for today. Try again tomorrow or upgrade the Firebase plan.");
+      else toast("That didn't save. Check your connection and try again.");
+      return false;
+    }
+  }
+
+  /* ---------- writes that keep time blocks in sync ---------- */
+  // Every job reserves 15-minute blocks ("holds") for each assigned cleaner, so the customer site can't double-book.
+  async function writeJob(id, body, prev) {
+    const cfg = bizCfg();
+    const ref = id ? S.db.doc("jobs/" + id) : S.db.collection("jobs").doc();
+    const startMin = mins(body.start), blocks = A.blockMins(body.duration, cfg.buffer);
+    const want = body.status === "cancelled" ? [] : (body.staff || []).flatMap(cid =>
+      A.holdIds(cid, body.date, startMin, blocks).map((hid, i) => ({ hid, data: { jobId: ref.id, cleanerId: cid, date: body.date, t: startMin + i * A.HOLD } })));
+    const had = new Set(prev?.holds || []);
+    const fresh = want.filter(w => !had.has(w.hid));
+    const snaps = await Promise.all(fresh.map(w => S.db.doc("holds/" + w.hid).get()));
+    const clashes = new Set(snaps.filter(x => x.exists && x.data().jobId !== ref.id).map(x => x.id));
+    const owned = want.filter(w => !clashes.has(w.hid));
+    const ownedIds = new Set(owned.map(w => w.hid));
+    const batch = S.db.batch();
+    batch.set(ref, { ...body, startMin, blockMins: blocks, holds: [...ownedIds] });
+    owned.filter(w => !had.has(w.hid)).forEach(w => batch.set(S.db.doc("holds/" + w.hid), w.data));
+    [...had].filter(h => !ownedIds.has(h)).forEach(h => batch.delete(S.db.doc("holds/" + h)));
+    await batch.commit();
+    if (clashes.size) toast("Saved, but this overlaps another job for the same cleaner.");
+    return ref;
+  }
+  async function deleteJob(job) {
+    const batch = S.db.batch();
+    batch.delete(S.db.doc("jobs/" + job.id));
+    (job.holds || []).forEach(h => batch.delete(S.db.doc("holds/" + h)));
+    await batch.commit();
+  }
+
+  /* ---------- views ---------- */
+  function jobCard(j, opts = {}) {
+    const c = jobClient(j);
+    const staff = (j.staff || []).map(id => `<span class="chip">${esc(empName(id))}</span>`).join("") || `<span class="chip none">No one assigned</span>`;
+    return `<button type="button" class="job ${esc(j.status || "scheduled")}" data-act="edit-job" data-id="${esc(j.id)}">
+      <div class="row1"><span class="t">${opts.showDate ? esc(fmtDay(parseYmd(j.date))) + " · " : ""}${esc(fmtTime(j.start))}–${esc(endTime(j))}</span><span class="price">${money(j.price)}</span></div>
+      <div class="who">${esc(c?.name || "Unknown client")}</div>
+      <div class="meta">${esc(j.service || "")}${j.status === "new" ? ` · <span class="pill new">Online · confirm</span>` : j.status && j.status !== "scheduled" ? ` · <span class="pill ${esc(j.status)}">${esc(j.status)}</span>` : ""}</div>
+      ${c?.address ? `<div class="meta addr">${esc(c.address)}</div>` : ""}
+      <div class="chips">${staff}</div>
+    </button>`;
+  }
+
+  function exampleBanner() { return ""; }
+
+  // Link an online booking to an existing client with the same phone or email, or add them as a new client.
+  async function clientFromCustomer(cu) {
+    const digits = x => String(x || "").replace(/\D/g, "");
+    const match = S.clients.find(c => (cu.phone && digits(c.phone) && digits(c.phone) === digits(cu.phone)) || (cu.email && c.email && c.email.toLowerCase() === cu.email.toLowerCase()));
+    if (match) return match.id;
+    const now = new Date().toISOString();
+    try {
+      const ref = await S.db.collection("clients").add({ name: cu.name, phone: cu.phone, email: cu.email, address: cu.address, access: cu.access, rate: "", frequency: "", notes: "", source: "online", createdAt: now, updatedAt: now });
+      return ref.id;
+    } catch (e) { await guard(Promise.reject(e)); return null; }
+  }
+
+  function staffAccessPanel() {
+    if (S.role !== "owner") return "";
+    return `<section>
+      <div class="section-head"><div><div class="eyebrow">Who can sign in here</div><h2>Staff access</h2></div><button class="btn" data-act="add-staff" type="button">+ Give access</button></div>
+      <div class="panel">${S.staffList.map(x => `<div class="staffrow"><span><strong>${esc(x.id)}</strong> <span class="note">${x.role === "owner" ? "Owner" : "Staff"}${x.id === S.me.email ? " · you" : ""}</span></span>
+        ${x.id === S.me.email ? "" : `<button class="btn danger small" data-act="remove-staff" data-id="${esc(x.id)}" type="button">Remove</button>`}</div>`).join("")}
+      <p class="note" style="margin-top:10px">Customers never need an account. They book on the public site.</p></div>
+    </section>`;
+  }
+
+  function onlinePanel() {
+    const pending = S.jobs.filter(j => j.status === "new").sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    if (!pending.length) return "";
+    return `<section><div class="section-head"><div><div class="eyebrow">From your booking site</div><h2>New online bookings (${pending.length})</h2></div></div>
+      <div class="cards">${pending.map(j => {
+        const c = j.customer || {};
+        return `<div class="panel online">
+          <div class="top-row"><h3>${esc(c.name)}</h3><span class="pill new">New</span></div>
+          <div><strong>${esc(fmtDay(parseYmd(j.date)))}</strong> · ${esc(fmtTime(j.start))}–${esc(endTime(j))} · ${esc(j.service)}</div>
+          <div class="note">${esc([c.phone, c.email].filter(Boolean).join(" · "))}</div>
+          <div class="note">${esc(c.address)}${c.access ? ` · Entry: ${esc(c.access)}` : ""}</div>
+          ${j.notes ? `<div class="note">“${esc(j.notes)}”</div>` : ""}
+          <div class="chips">${(j.staff || []).map(id => `<span class="chip">${esc(empName(id))}</span>`).join("")}</div>
+          <div class="actions"><button class="btn ok small" data-act="accept-online" data-id="${esc(j.id)}" type="button">Confirm</button>
+            <button class="btn small" data-act="edit-job" data-id="${esc(j.id)}" type="button">Edit</button>
+            <button class="btn danger small" data-act="decline-online" data-id="${esc(j.id)}" type="button">Decline</button></div>
+        </div>`;
+      }).join("")}</div></section>`;
+  }
+
+  function viewOverview() {
+    const now = new Date(), today = ymd(now);
+    const wk0 = mondayOf(now), wk1 = addDays(wk0, 7);
+    const live = S.jobs.filter(j => j.status !== "cancelled");
+    const todayJobs = live.filter(j => j.date === today).sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+    const weekJobs = live.filter(j => { const d = parseYmd(j.date); return d >= wk0 && d < wk1; });
+    const weekShifts = S.shifts.filter(s => { const d = new Date(s.in); return d >= wk0 && d < wk1; });
+    const hoursWeek = weekShifts.reduce((a, s) => a + shiftHours(s), 0);
+    const onClock = S.shifts.filter(s => !s.out);
+    const unassigned = live.filter(j => j.date >= today && j.status === "scheduled" && !(j.staff || []).length).length;
+    const upcoming = live.filter(j => j.date > today && j.status === "scheduled").sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start)).slice(0, 6);
+
+    return `${onlinePanel()}
+    <section>
+      <div class="section-head"><div><div class="eyebrow">${esc(now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }))}</div><h2>Today at a glance</h2></div>
+      ${S.canWrite ? `<button class="btn primary" data-act="new-job" data-date="${today}" type="button">+ Book a job</button>` : ""}</div>
+      <div class="stats">
+        <div class="stat"><div class="v">${todayJobs.length}</div><div class="l">jobs today</div></div>
+        <div class="stat"><div class="v">${weekJobs.length}</div><div class="l">jobs this week</div></div>
+        <div class="stat"><div class="v">${money(weekJobs.reduce((a, j) => a + (Number(j.price) || 0), 0))}</div><div class="l">booked this week</div></div>
+        <div class="stat"><div class="v">${hrs(hoursWeek)}</div><div class="l">crew hours this week</div></div>
+      </div>
+    </section>
+    ${unassigned ? `<div class="banner info"><span><strong>${unassigned} upcoming ${unassigned === 1 ? "job has" : "jobs have"} no one assigned.</strong></span><button class="btn small" data-tab-go="schedule" type="button">Open schedule</button></div>` : ""}
+    <div class="two">
+      <section>
+        <div class="section-head"><h2>Today's jobs</h2></div>
+        <div class="list">${todayJobs.length ? todayJobs.map(j => jobCard(j)).join("") : `<div class="empty">Nothing booked for today.</div>`}</div>
+        <div class="section-head" style="margin-top:24px"><h2>Coming up</h2></div>
+        <div class="list">${upcoming.length ? upcoming.map(j => jobCard(j, { showDate: true })).join("") : `<div class="empty">No upcoming jobs yet. Book one with the button above.</div>`}</div>
+      </section>
+      <section>
+        <div class="section-head"><h2>On the clock</h2><button class="link" data-tab-go="team" type="button">Team &amp; Time →</button></div>
+        <div class="list">${onClock.length ? onClock.map(s => `<div class="panel emp"><div class="top-row"><h3>${esc(empName(s.employeeId))}</h3><span class="pill on">Working</span></div><div class="since">In at ${esc(fmtClock(new Date(s.in)))} · ${hrs(shiftHours(s))} h so far</div></div>`).join("") : `<div class="empty">No one is clocked in.</div>`}</div>
+      </section>
+    </div>`;
+  }
+
+  function viewSchedule() {
+    const today = ymd(new Date());
+    const days = [...Array(7)].map((_, i) => addDays(S.week, i));
+    const end = addDays(S.week, 6);
+    const wkJobs = S.jobs.filter(j => { const d = parseYmd(j.date); return d >= S.week && d <= end; });
+    const total = wkJobs.filter(j => j.status !== "cancelled").reduce((a, j) => a + (Number(j.price) || 0), 0);
+    return `${exampleBanner()}
+    <section>
+      <div class="section-head">
+        <div class="weeknav">
+          <button class="btn small" data-act="week" data-d="-7" type="button" aria-label="Previous week">←</button>
+          <span class="label">${esc(S.week.toLocaleDateString(undefined, { month: "short", day: "numeric" }))} – ${esc(end.toLocaleDateString(undefined, { month: "short", day: "numeric" }))}</span>
+          <button class="btn small" data-act="week" data-d="7" type="button" aria-label="Next week">→</button>
+          <button class="btn small" data-act="week" data-d="0" type="button">This week</button>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="note">${wkJobs.filter(j => j.status !== "cancelled").length} jobs · ${money(total)} booked</span>
+        ${S.canWrite ? `<button class="btn primary" data-act="new-job" type="button">+ Book a job</button>` : ""}</div>
+      </div>
+      <div class="week">${days.map(d => {
+        const ds = ymd(d);
+        const js = wkJobs.filter(j => j.date === ds).sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+        return `<div class="day ${ds === today ? "today" : ""}"><h3>${esc(d.toLocaleDateString(undefined, { weekday: "short" }))} <small>${esc(d.toLocaleDateString(undefined, { month: "short", day: "numeric" }))}</small></h3>
+          ${js.map(j => jobCard(j)).join("")}
+          ${S.canWrite ? `<button class="add" data-act="new-job" data-date="${ds}" type="button">+ Add</button>` : ""}</div>`;
+      }).join("")}</div>
+    </section>`;
+  }
+
+  function clientCards() {
+    const q = S.q.trim().toLowerCase();
+    const today = ymd(new Date());
+    const list = S.clients.filter(c => !q || [c.name, c.address, c.phone, c.email].join(" ").toLowerCase().includes(q))
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    if (!S.clients.length) return `<div class="empty">No clients yet. Add your first client to start booking jobs for them.</div>`;
+    if (!list.length) return `<div class="empty">No clients match “${esc(S.q)}”.</div>`;
+    return `<div class="cards">${list.map(c => {
+      const next = S.jobs.filter(j => j.clientId === c.id && j.date >= today && j.status === "scheduled").sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))[0];
+      const visits = S.jobs.filter(j => j.clientId === c.id && j.status === "done").length;
+      return `<button type="button" class="ccard" data-act="edit-client" data-id="${esc(c.id)}">
+        <h3>${esc(c.name)}</h3>
+        ${c.address ? `<div class="line">${esc(c.address)}</div>` : ""}
+        ${c.phone || c.email ? `<div class="line">${esc([c.phone, c.email].filter(Boolean).join(" · "))}</div>` : ""}
+        ${c.access ? `<div class="access">Entry: ${esc(c.access)}</div>` : ""}
+        <div class="next">${next ? `Next visit <strong>${esc(fmtDay(parseYmd(next.date)))}</strong> at ${esc(fmtTime(next.start))}` : `<span class="note">No visit booked</span>`} · <span class="note">${visits} completed</span></div>
+      </button>`;
+    }).join("")}</div>`;
+  }
+
+  function viewClients() {
+    return `${exampleBanner()}<section>
+      <div class="section-head"><h2>Clients <span class="note">(${S.clients.length})</span></h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="search" id="clientSearch" type="search" placeholder="Search name, address, phone" value="${esc(S.q)}" aria-label="Search clients">
+        ${S.canWrite ? `<button class="btn primary" data-act="new-client" type="button">+ Add client</button>` : ""}</div>
+      </div>
+      <div id="clientList">${clientCards()}</div>
+    </section>`;
+  }
+
+  function viewTeam() {
+    const wk0 = S.tsWeek, wk1 = addDays(wk0, 7);
+    const days = [...Array(7)].map((_, i) => addDays(wk0, i));
+    const weekShifts = S.shifts.filter(s => { const d = new Date(s.in); return d >= wk0 && d < wk1; }).sort((a, b) => a.in.localeCompare(b.in));
+    const emps = [...S.employees].sort((a, b) => (b.active !== false) - (a.active !== false) || (a.name || "").localeCompare(b.name || ""));
+    const rowEmps = emps.filter(e => e.active !== false || weekShifts.some(s => s.employeeId === e.id));
+    let grandH = 0, grandP = 0;
+    const rows = rowEmps.map(e => {
+      const per = days.map(d => weekShifts.filter(s => s.employeeId === e.id && ymd(new Date(s.in)) === ymd(d)).reduce((a, s) => a + shiftHours(s), 0));
+      const tot = per.reduce((a, b) => a + b, 0), pay = tot * (Number(e.rate) || 0);
+      grandH += tot; grandP += pay;
+      return `<tr><td>${esc(e.name)}</td>${per.map(h => `<td class="${h ? "" : "zero"}">${h ? hrs(h) : "–"}</td>`).join("")}<td><strong>${hrs(tot)}</strong></td><td>${money(pay)}</td></tr>`;
+    }).join("");
+
+    return `${exampleBanner()}
+    <section>
+      <div class="section-head"><h2>Crew</h2>${S.canWrite ? `<button class="btn primary" data-act="new-emp" type="button">+ Add team member</button>` : ""}</div>
+      ${emps.length ? `<div class="cards">${emps.map(e => {
+        const open = S.shifts.find(s => s.employeeId === e.id && !s.out);
+        const todayJobs = S.jobs.filter(j => j.date === ymd(new Date()) && j.status !== "cancelled" && (j.staff || []).includes(e.id)).length;
+        return `<div class="panel emp">
+          <div class="top-row"><h3>${esc(e.name)}</h3>${e.active === false ? `<span class="pill off">Inactive</span>` : open ? `<span class="pill on">Working</span>` : `<span class="pill off">Off</span>`}</div>
+          <div class="since">${open ? `Clocked in at ${esc(fmtClock(new Date(open.in)))} · ${hrs(shiftHours(open))} h` : `${todayJobs} ${todayJobs === 1 ? "job" : "jobs"} today`}${e.phone ? ` · ${esc(e.phone)}` : ""}</div>
+          <div class="actions">${S.canWrite && e.active !== false ? (open ? `<button class="btn ok" data-act="clock-out" data-id="${esc(open.id)}" type="button">Clock out</button>` : `<button class="btn primary" data-act="clock-in" data-id="${esc(e.id)}" type="button">Clock in</button>`) : ""}
+          ${S.canWrite ? `<button class="btn small" data-act="edit-emp" data-id="${esc(e.id)}" type="button">Edit</button>` : ""}</div>
+        </div>`;
+      }).join("")}</div>` : `<div class="empty">Add your team so you can assign them to jobs and track their hours.</div>`}
+    </section>
+    <section>
+      <div class="section-head">
+        <div><div class="eyebrow">Timesheet</div><div class="weeknav">
+          <button class="btn small" data-act="tsweek" data-d="-7" type="button" aria-label="Previous week">←</button>
+          <span class="label">${esc(wk0.toLocaleDateString(undefined, { month: "short", day: "numeric" }))} – ${esc(addDays(wk0, 6).toLocaleDateString(undefined, { month: "short", day: "numeric" }))}</span>
+          <button class="btn small" data-act="tsweek" data-d="7" type="button" aria-label="Next week">→</button>
+          <button class="btn small" data-act="tsweek" data-d="0" type="button">This week</button></div></div>
+        ${S.canWrite && S.employees.length ? `<button class="btn" data-act="new-shift" type="button">+ Add time entry</button>` : ""}
+      </div>
+      ${rowEmps.length ? `<div class="tablewrap"><table>
+        <thead><tr><th>Team member</th>${days.map(d => `<th>${esc(d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" }))}</th>`).join("")}<th>Hours</th><th>Est. pay</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total</td><td colspan="7"></td><td>${hrs(grandH)}</td><td>${money(grandP)}</td></tr></tfoot>
+      </table></div>` : ""}
+      <h3 style="margin:20px 0 8px;font-size:1rem">Time entries this week</h3>
+      ${weekShifts.length ? `<div class="tablewrap"><table>
+        <thead><tr><th>Team member</th><th>Day</th><th>In</th><th>Out</th><th>Hours</th><th>Note</th></tr></thead>
+        <tbody>${weekShifts.map(s => `<tr class="${S.canWrite ? "click" : ""}" ${S.canWrite ? `data-act="edit-shift" data-id="${esc(s.id)}" tabindex="0"` : ""}>
+          <td>${esc(empName(s.employeeId))}</td><td>${esc(fmtDay(new Date(s.in)))}</td><td>${esc(fmtClock(new Date(s.in)))}</td>
+          <td class="${s.out ? "" : "open"}">${s.out ? esc(fmtClock(new Date(s.out))) : "Still in"}</td><td>${hrs(shiftHours(s))}</td><td style="text-align:left">${esc(s.note || "")}</td></tr>`).join("")}</tbody>
+      </table></div><p class="note">Tap an entry to fix a missed clock-out or wrong time.</p>` : `<div class="empty">No hours logged this week. Use Clock in on a team member above.</div>`}
+    </section>
+    ${staffAccessPanel()}`;
+  }
+
+  function bookingMessage(job, client, cleaner) {
+    const first = (client.name || "").replace(/^Example:\s*/, "").split(" ")[0];
+    const biz = S.biz?.name || "our team";
+    return `Hi ${first}, you're booked with ${biz} for a ${job.service.toLowerCase()} on ${parseYmd(job.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} at ${fmtTime(job.start)} (about ${job.duration} hrs).`
+      + (cleaner ? ` Your cleaner will be ${cleaner.name.replace(/^Example:\s*/, "")}.` : "")
+      + (client.address ? ` Address: ${client.address}.` : "")
+      + (job.price ? ` Price: ${money(job.price)}.` : "")
+      + ` Reply to this message if you need to change anything. Thank you!`;
+  }
+
+  function viewBook() {
+    const b = S.bk;
+    if (!S.canWrite) return `<div class="empty">You have view-only access, so you can't book jobs. Ask the owner for Contributor access.</div>`;
+    if (b.done) {
+      return `<section class="confirm panel">
+        <div><div class="eyebrow">Booked</div><h2>${esc(b.done.title)}</h2></div>
+        <div class="field"><label for="bk-msg">Confirmation to send the customer</label><textarea id="bk-msg" readonly>${esc(b.done.message)}</textarea></div>
+        <p class="note">Copy this into a text or email to the customer.</p>
+        <div class="actions"><button class="btn primary" data-act="bk-copy" type="button">Copy confirmation</button>
+        <button class="btn" data-act="bk-view" data-date="${esc(b.done.date)}" type="button">See it on the schedule</button>
+        <button class="btn" data-act="bk-reset" type="button">Book another</button></div>
+      </section>`;
+    }
+    buildJobMap();
+    const dur = Math.round((Number(b.duration) || 2) * 60);
+    const todayStr = ymd(new Date());
+    const y = b.month.getFullYear(), mo = b.month.getMonth();
+    const lead = (b.month.getDay() + 6) % 7, nDays = new Date(y, mo + 1, 0).getDate();
+    const thisMonth = new Date(); const atStart = y === thisMonth.getFullYear() && mo === thisMonth.getMonth();
+    let cells = "";
+    for (let i = 0; i < lead; i++) cells += `<span class="cal-blank"></span>`;
+    for (let d = 1; d <= nDays; d++) {
+      const ds = ymd(new Date(y, mo, d));
+      const past = ds < todayStr;
+      const open = past ? 0 : slotsFor(ds, dur).filter(s => s.free.length).length;
+      cells += `<button type="button" class="cal-day ${ds === todayStr ? "today" : ""} ${ds === b.date ? "sel" : ""} ${!past && !open ? "full" : ""}" data-act="bk-day" data-date="${ds}" ${past ? "disabled" : ""} aria-label="${esc(fmtDay(parseYmd(ds)))}, ${open} open times">${d}${past ? "" : `<small>${open ? open + " open" : "full"}</small>`}</button>`;
+    }
+    const slots = b.date ? slotsFor(b.date, dur) : [];
+    const slot = slots.find(s => s.t === b.start && s.free.length);
+    if (!slot) b.start = null;
+    const freeIds = slot ? slot.free.map(e => e.id) : [];
+    if (b.cleaner !== "any" && !freeIds.includes(b.cleaner)) b.cleaner = "any";
+    const actives = S.employees.filter(e => e.active !== false).sort((a, c) => a.name.localeCompare(c.name));
+    const client = byId(S.clients, b.clientId);
+    const clients = [...S.clients].sort((a, c) => a.name.localeCompare(c.name));
+
+    return `${exampleBanner()}
+    <div class="section-head"><div><div class="eyebrow">New booking</div><h2>Book a cleaning</h2></div><span class="note">Hours ${esc(fmtTime(bizCfg().open))}–${esc(fmtTime(bizCfg().close))} · ${bizCfg().buffer} min travel between jobs · <button class="link" data-act="rename" type="button">Change</button></span></div>
+    ${actives.length ? "" : `<div class="banner info"><span>Add team members under Team &amp; Time first. Open times come from who is working.</span><button class="btn small" data-tab-go="team" type="button">Team &amp; Time</button></div>`}
+    <div class="book">
+      <div class="panel">
+        <div class="field" style="margin-bottom:14px"><label for="bk-service">Service</label><select id="bk-service" data-bk="service">${serviceOptions(b.service)}</select></div>
+        <div class="field" style="margin-bottom:16px"><label for="bk-duration">How long (hours)</label><select id="bk-duration" data-bk="duration">${[1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8].map(h => `<option value="${h}" ${Number(b.duration) === h ? "selected" : ""}>${h} hrs</option>`).join("")}</select></div>
+        <div class="cal-head"><button class="btn small" data-act="bk-month" data-d="-1" type="button" aria-label="Previous month" ${atStart ? "disabled" : ""}>←</button><strong>${esc(b.month.toLocaleDateString(undefined, { month: "long", year: "numeric" }))}</strong><button class="btn small" data-act="bk-month" data-d="1" type="button" aria-label="Next month">→</button></div>
+        <div class="cal-grid">${DOW.map(d => `<span class="cal-dow">${d[1].slice(0, 2)}</span>`).join("")}${cells}</div>
+        <div class="legend"><span>Number = start times with a cleaner free</span></div>
+      </div>
+      <div class="steps">
+        <div class="step"><h3><span class="n">1</span>Pick a time</h3>
+          ${!b.date ? `<div class="empty">Choose a day on the calendar to see open times.</div>`
+          : slots.length ? `<div class="picked">${esc(parseYmd(b.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }))}</div><div class="slots">${slots.map(s => `<button type="button" class="slot ${s.t === b.start ? "sel" : ""}" data-act="bk-slot" data-t="${s.t}" ${s.free.length ? "" : "disabled"}><span>${esc(fmtTime(hm(s.t)))}</span><small>${s.free.length ? s.free.length + " free" : "booked"}</small></button>`).join("")}</div>`
+          : `<div class="empty">No start times left on this day for a ${b.duration}-hour job.</div>`}
+        </div>
+        <div class="step"><h3><span class="n">2</span>Choose a cleaner</h3>
+          <div class="field"><label for="bk-cleaner">Cleaner</label><select id="bk-cleaner" data-bk="cleaner" ${slot ? "" : "disabled"}>
+            ${slot ? `<option value="any">Any available cleaner (${freeIds.length} free)</option>${actives.map(e => `<option value="${esc(e.id)}" ${freeIds.includes(e.id) ? "" : "disabled"} ${b.cleaner === e.id ? "selected" : ""}>${esc(e.name)}${freeIds.includes(e.id) ? ` · ${jobsOnDayFor(e.id, b.date)} jobs that day` : " · not available"}</option>`).join("")}` : `<option>Pick a time first</option>`}
+          </select></div>
+        </div>
+        <div class="step"><h3><span class="n">3</span>Customer</h3>
+          <div class="field"><label for="bk-client">Customer</label><select id="bk-client" data-bk="clientId"><option value="">New customer</option>${clients.map(c => `<option value="${esc(c.id)}" ${c.id === b.clientId ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></div>
+          ${client ? `<div class="picked">${esc([client.address, client.phone].filter(Boolean).join(" · ") || "No address on file")}${client.access ? `<br><span class="note">Entry: ${esc(client.access)}</span>` : ""}</div>`
+          : `<div class="grid2"><div class="field"><label for="bk-name">Name</label><input id="bk-name" data-bk="name" value="${esc(b.name)}" autocomplete="off"></div><div class="field"><label for="bk-phone">Phone</label><input id="bk-phone" type="tel" data-bk="phone" value="${esc(b.phone)}"></div></div>
+          <div class="grid2"><div class="field"><label for="bk-email">Email</label><input id="bk-email" type="email" data-bk="email" value="${esc(b.email)}"></div><div class="field"><label for="bk-address">Address</label><input id="bk-address" data-bk="address" value="${esc(b.address)}"></div></div>
+          <div class="field"><label for="bk-access">Entry &amp; access</label><input id="bk-access" data-bk="access" value="${esc(b.access)}" placeholder="Lockbox code, alarm, pets"></div>`}
+          <div class="grid2"><div class="field"><label for="bk-price">Price ($)</label><input id="bk-price" type="number" min="0" step="0.01" data-bk="price" value="${esc(b.price)}" placeholder="${esc(client?.rate || "")}"></div>
+          <div class="field"><label for="bk-notes">Notes for the crew</label><input id="bk-notes" data-bk="notes" value="${esc(b.notes)}"></div></div>
+        </div>
+        <div><button class="btn primary" data-act="bk-confirm" type="button" ${slot && !b.busy ? "" : "disabled"}>${b.busy ? "Booking…" : slot ? `Confirm ${esc(fmtTime(hm(b.start)))} booking` : "Pick a day and time to book"}</button></div>
+      </div>
+    </div>`;
+  }
+
+  function render() {
+    document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    $("#bizName").textContent = S.biz?.name || "Cleaning Crew HQ";
+    $(".rename").hidden = !S.canWrite || !S.db;
+    if (!S.db) return;
+    if (!Object.values(S.loaded).every(Boolean)) return;
+    const act = document.activeElement, focusId = act && act.id && act.matches("input, textarea") ? act.id : null;
+    const html = S.tab === "book" ? viewBook() : S.tab === "schedule" ? viewSchedule() : S.tab === "clients" ? viewClients() : S.tab === "team" ? viewTeam() : viewOverview();
+    $("#main").innerHTML = html;
+    if (focusId) { const i = document.getElementById(focusId); if (i) { i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch (e) {} } }
+  }
+
+  /* ---------- dialog ---------- */
+  const dlg = $("#dlg"), form = $("#dlgForm");
+  let onSave = null, onDelete = null;
+  function openDialog(title, body, save, del) {
+    onSave = save; onDelete = del;
+    form.innerHTML = `<h2>${esc(title)}</h2>${body}
+      <div class="dlg-actions">${del ? `<button class="btn danger" type="button" data-act="dlg-delete">Delete</button>` : ""}
+      <div class="right"><button class="btn" type="button" data-act="dlg-cancel">Cancel</button><button class="btn primary" type="submit">Save</button></div></div>`;
+    dlg.showModal();
+    const first = form.querySelector("input:not([type=checkbox]), select"); first?.focus();
+  }
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const err = onSave && await onSave(fd);
+    if (err) { toast(err); return; }
+    dlg.close();
+  });
+  const field = (label, html, cls = "") => `<div class="field ${cls}"><label>${esc(label)}</label>${html}</div>`;
+
+  /* job form */
+  function openJob(job, date) {
+    const isNew = !job;
+    job = job || { date: date || ymd(new Date()), start: "09:00", duration: 2, service: SERVICES[0], status: "scheduled", staff: [], price: "" };
+    if (!S.clients.length && !job.customer) { toast("Add a client first, then book their job."); S.tab = "clients"; render(); return; }
+    const clients = [...S.clients].sort((a, b) => a.name.localeCompare(b.name));
+    const activeEmps = S.employees.filter(e => e.active !== false || (job.staff || []).includes(e.id));
+    const c = jobClient(job);
+    const onlineNew = job.customer && !job.clientId;
+    openDialog(isNew ? "Book a job" : onlineNew ? "Online booking" : "Job details", `
+      ${field("Client", `<select name="clientId" id="f-client" required><option value="">Choose a client…</option>${onlineNew ? `<option value="__online" selected>${esc(job.customer.name)} (new, from website)</option>` : ""}${clients.map(c => `<option value="${esc(c.id)}" ${c.id === job.clientId ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`)}
+      ${onlineNew ? `<div class="note">${esc([job.customer.phone, job.customer.email, job.customer.address].filter(Boolean).join(" · "))}</div>` : ""}
+      ${c?.access ? `<div class="access ccard" style="cursor:default;padding:8px 10px">Entry: ${esc(c.access)}</div>` : ""}
+      <div class="grid3">
+        ${field("Date", `<input type="date" name="date" id="f-date" value="${esc(job.date)}" required>`)}
+        ${field("Start", `<input type="time" name="start" id="f-start" value="${esc(job.start)}" step="900">`)}
+        ${field("Hours", `<input type="number" name="duration" id="f-dur" value="${esc(job.duration)}" min="0.25" step="0.25">`)}
+      </div>
+      <div class="grid2">
+        ${field("Service", `<select name="service" id="f-service">${serviceOptions(job.service)}</select>`)}
+        ${field("Price ($)", `<input type="number" name="price" id="f-price" value="${esc(job.price)}" min="0" step="0.01" placeholder="${esc(c?.rate || "")}">`)}
+      </div>
+      <div class="field"><span class="lbl">Crew</span><div class="checks">${activeEmps.length ? activeEmps.map(e => `<label><input type="checkbox" name="staff" value="${esc(e.id)}" ${(job.staff || []).includes(e.id) ? "checked" : ""}> ${esc(e.name)}</label>`).join("") : `<span class="note">Add team members under Team &amp; Time to assign them.</span>`}</div></div>
+      ${isNew ? `<div class="grid2">${field("Repeat", `<select name="repeat" id="f-repeat"><option value="0">Does not repeat</option><option value="7">Every week</option><option value="14">Every 2 weeks</option><option value="28">Every 4 weeks</option><option value="m">Monthly (same date)</option></select>`)}
+        ${field("Number of visits", `<input type="number" name="count" id="f-count" value="8" min="1" max="52">`)}</div>`
+      : field("Status", `<select name="status" id="f-status">${[["new", "New online booking (not confirmed)"], ["scheduled", "Scheduled"], ["done", "Done"], ["cancelled", "Cancelled"]].filter(([v]) => v !== "new" || job.status === "new").map(([v, l]) => `<option value="${v}" ${v === job.status ? "selected" : ""}>${l}</option>`).join("")}</select>`)}
+      ${field("Job notes", `<textarea name="notes" id="f-notes" placeholder="Supplies to bring, rooms to skip, special requests">${esc(job.notes || "")}</textarea>`)}
+    `, async fd => {
+      let clientId = fd.get("clientId");
+      if (!clientId) return "Choose a client for this job.";
+      if (!fd.get("date")) return "Pick a date for this job.";
+      if (clientId === "__online") { clientId = await clientFromCustomer(job.customer); if (!clientId) return "Couldn't save the customer. Try again."; }
+      const cl = byId(S.clients, clientId);
+      const body = {
+        clientId, date: fd.get("date"), start: fd.get("start") || "09:00", duration: Number(fd.get("duration")) || 2,
+        service: fd.get("service"), price: fd.get("price") === "" ? (Number(cl?.rate) || 0) : Number(fd.get("price")),
+        staff: fd.getAll("staff"), notes: fd.get("notes").trim(), status: isNew ? "scheduled" : fd.get("status"),
+        updatedAt: new Date().toISOString()
+      };
+      if (!isNew) { await guard(writeJob(job.id, { ...stripId(job), ...body, createdAt: job.createdAt || body.updatedAt }, job), "Job saved"); return; }
+      const rep = fd.get("repeat"), count = rep === "0" ? 1 : Math.min(52, Math.max(1, Number(fd.get("count")) || 1));
+      const start = parseYmd(body.date);
+      const series = count > 1 ? "s" + Date.now().toString(36) : undefined;
+      let ok = true;
+      for (let i = 0; i < count && ok; i++) {
+        let d = rep === "m" ? new Date(start.getFullYear(), start.getMonth() + i, start.getDate()) : addDays(start, i * Number(rep || 0));
+        ok = await guard(writeJob(null, { ...body, date: ymd(d), createdAt: body.updatedAt, ...(series ? { series } : {}) }));
+      }
+      if (ok) toast(count > 1 ? `Booked ${count} visits` : "Job booked");
+    }, isNew ? null : async () => { await guard(deleteJob(job), "Job deleted"); });
+    const sel = $("#f-client");
+    sel.addEventListener("change", () => { const cc = byId(S.clients, sel.value); $("#f-price").placeholder = cc?.rate || ""; });
+  }
+
+  function openClient(c) {
+    const isNew = !c; c = c || {};
+    const hist = isNew ? [] : S.jobs.filter(j => j.clientId === c.id).sort((a, b) => (b.date + b.start).localeCompare(a.date + a.start)).slice(0, 8);
+    openDialog(isNew ? "Add client" : c.name, `
+      ${field("Name", `<input name="name" id="c-name" value="${esc(c.name)}" required placeholder="e.g. Rivera household">`)}
+      <div class="grid2">${field("Phone", `<input name="phone" id="c-phone" type="tel" value="${esc(c.phone)}">`)}${field("Email", `<input name="email" id="c-email" type="email" value="${esc(c.email)}">`)}</div>
+      ${field("Address", `<input name="address" id="c-address" value="${esc(c.address)}" placeholder="Street, unit, city">`)}
+      ${field("Entry & access", `<input name="access" id="c-access" value="${esc(c.access)}" placeholder="Lockbox code, alarm, gate, pets">`)}
+      <div class="grid2">${field("Usual price ($)", `<input name="rate" id="c-rate" type="number" min="0" step="0.01" value="${esc(c.rate)}">`)}
+        ${field("Usual frequency", `<select name="frequency" id="c-freq">${["", "Weekly", "Every 2 weeks", "Monthly", "One-time"].map(f => `<option value="${f}" ${f === (c.frequency || "") ? "selected" : ""}>${f || "Not set"}</option>`).join("")}</select>`)}</div>
+      ${field("Preferences & notes", `<textarea name="notes" id="c-notes" placeholder="Products to use or avoid, rooms to focus on">${esc(c.notes)}</textarea>`)}
+      ${hist.length ? `<div class="field"><span class="lbl">Recent and upcoming visits</span><div class="history">${hist.map(j => `<div><span>${esc(fmtDay(parseYmd(j.date)))} · ${esc(j.service)}</span><span>${money(j.price)} · ${esc(j.status)}</span></div>`).join("")}</div></div>` : ""}
+    `, async fd => {
+      const name = fd.get("name").trim();
+      if (!name) return "Give this client a name.";
+      const body = { name, phone: fd.get("phone").trim(), email: fd.get("email").trim(), address: fd.get("address").trim(), access: fd.get("access").trim(),
+        rate: fd.get("rate") === "" ? "" : Number(fd.get("rate")), frequency: fd.get("frequency"), notes: fd.get("notes").trim(), updatedAt: new Date().toISOString() };
+      if (c.example) body.example = true;
+      if (isNew) await guard(S.db.collection("clients").add({ ...body, createdAt: body.updatedAt }), "Client added");
+      else await guard(S.db.doc("clients/" + c.id).set({ ...body, createdAt: c.createdAt || body.updatedAt }), "Client saved");
+    }, isNew || !S.canWrite ? null : async () => {
+      if (S.jobs.some(j => j.clientId === c.id && j.status === "scheduled" && j.date >= ymd(new Date()))) { toast("Cancel or delete this client's upcoming jobs first."); return false; }
+      await guard(S.db.doc("clients/" + c.id).delete(), "Client deleted");
+    });
+  }
+
+  function openEmp(e) {
+    const isNew = !e; e = e || { active: true };
+    openDialog(isNew ? "Add team member" : e.name, `
+      ${field("Name", `<input name="name" id="e-name" value="${esc(e.name)}" required>`)}
+      <div class="grid2">${field("Phone", `<input name="phone" id="e-phone" type="tel" value="${esc(e.phone)}">`)}${field("Hourly pay ($)", `<input name="rate" id="e-rate" type="number" min="0" step="0.25" value="${esc(e.rate)}">`)}</div>
+      <div class="field"><span class="lbl">Days they work</span><div class="checks">${DOW.map(([i, d]) => `<label><input type="checkbox" name="days" value="${i}" ${(e.days || DEFAULT_DAYS).includes(i) ? "checked" : ""}> ${d}</label>`).join("")}</div></div>
+      <div class="grid2">${field("Available from", `<input type="time" name="from" id="e-from" value="${esc(e.from || bizCfg().open)}" step="900">`)}${field("Until", `<input type="time" name="to" id="e-to" value="${esc(e.to || bizCfg().close)}" step="900">`)}</div>
+      <div class="checks"><label><input type="checkbox" name="active" id="e-active" ${e.active !== false ? "checked" : ""}> Currently working for us</label></div>
+      <p class="note">Booking only offers this person on their work days and hours. Inactive team members keep their past hours but drop off the crew list.</p>
+    `, async fd => {
+      const name = fd.get("name").trim();
+      if (!name) return "Enter the team member's name.";
+      if (mins(fd.get("to")) <= mins(fd.get("from"))) return "'Until' must be later than 'Available from'.";
+      const body = { name, phone: fd.get("phone").trim(), rate: Number(fd.get("rate")) || 0, active: fd.get("active") === "on",
+        days: fd.getAll("days").map(Number), from: fd.get("from") || bizCfg().open, to: fd.get("to") || bizCfg().close, updatedAt: new Date().toISOString() };
+      const ref = isNew ? S.db.collection("employees").doc() : S.db.doc("employees/" + e.id);
+      const batch = S.db.batch();
+      batch.set(ref, body);
+      // What customers see on the booking site: first name and working hours only.
+      batch.set(S.db.doc("publicCleaners/" + ref.id), { name: name.split(/\s+/)[0], days: body.days, fromMin: mins(body.from), toMin: mins(body.to), active: body.active });
+      await guard(batch.commit(), isNew ? "Team member added" : "Saved");
+    }, isNew ? null : async () => {
+      if (S.shifts.some(s => s.employeeId === e.id)) { toast("This person has logged hours. Mark them inactive instead."); return false; }
+      const batch = S.db.batch();
+      batch.delete(S.db.doc("employees/" + e.id)); batch.delete(S.db.doc("publicCleaners/" + e.id));
+      await guard(batch.commit(), "Team member removed");
+    });
+  }
+
+  function openShift(s) {
+    const isNew = !s;
+    const now = new Date();
+    s = s || { employeeId: S.employees.find(e => e.active !== false)?.id, in: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9).toISOString(), out: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13).toISOString() };
+    openDialog(isNew ? "Add time entry" : "Edit time entry", `
+      ${field("Team member", `<select name="employeeId" id="s-emp">${S.employees.map(e => `<option value="${esc(e.id)}" ${e.id === s.employeeId ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</select>`)}
+      <div class="grid2">${field("Clock in", `<input type="datetime-local" name="in" id="s-in" value="${esc(toLocalInput(s.in))}" required>`)}
+        ${field("Clock out", `<input type="datetime-local" name="out" id="s-out" value="${esc(toLocalInput(s.out))}">`)}</div>
+      <p class="note">Leave clock out empty if they're still working.</p>
+      ${field("Note", `<input name="note" id="s-note" value="${esc(s.note)}" placeholder="e.g. forgot to clock out, drive time">`)}
+    `, async fd => {
+      if (!fd.get("in")) return "Enter the clock-in time.";
+      const inIso = new Date(fd.get("in")).toISOString();
+      const outIso = fd.get("out") ? new Date(fd.get("out")).toISOString() : null;
+      if (outIso && outIso <= inIso) return "Clock out must be after clock in.";
+      const body = { employeeId: fd.get("employeeId"), in: inIso, out: outIso, note: fd.get("note").trim() };
+      if (s.example) body.example = true;
+      if (isNew) await guard(S.db.collection("shifts").add(body), "Time entry added");
+      else await guard(S.db.doc("shifts/" + s.id).set(body), "Time entry saved");
+    }, isNew ? null : async () => { await guard(S.db.doc("shifts/" + s.id).delete(), "Time entry deleted"); });
+  }
+
+  /* ---------- events ---------- */
+  let armTimer;
+  document.addEventListener("click", async ev => {
+    const tabBtn = ev.target.closest("[data-tab], [data-tab-go]");
+    if (tabBtn) { S.tab = tabBtn.dataset.tab || tabBtn.dataset.tabGo; try { localStorage.setItem("crewhq.tab", S.tab); } catch (e) {} render(); window.scrollTo(0, 0); return; }
+    const el = ev.target.closest("[data-act]"); if (!el) return;
+    const act = el.dataset.act, id = el.dataset.id;
+    if (act === "dlg-cancel") return dlg.close();
+    if (act === "dlg-delete") {
+      if (!el.classList.contains("armed")) { el.classList.add("armed"); el.textContent = "Tap again to delete"; clearTimeout(armTimer); armTimer = setTimeout(() => { el.classList.remove("armed"); el.textContent = "Delete"; }, 4000); return; }
+      const r = await onDelete?.(); if (r !== false) dlg.close(); return;
+    }
+    if (act === "week") { S.week = el.dataset.d === "0" ? mondayOf(new Date()) : addDays(S.week, Number(el.dataset.d)); return render(); }
+    if (act === "tsweek") { S.tsWeek = el.dataset.d === "0" ? mondayOf(new Date()) : addDays(S.tsWeek, Number(el.dataset.d)); return render(); }
+    if (act === "bk-month") { const m = S.bk.month; S.bk.month = new Date(m.getFullYear(), m.getMonth() + Number(el.dataset.d), 1); return render(); }
+    if (act === "bk-day") { S.bk.date = el.dataset.date; S.bk.start = null; return render(); }
+    if (act === "bk-slot") { S.bk.start = Number(el.dataset.t); return render(); }
+    if (act === "bk-reset") { S.bk = freshBooking(); return render(); }
+    if (act === "bk-view") { S.week = mondayOf(parseYmd(el.dataset.date)); S.tab = "schedule"; S.bk = freshBooking(); render(); window.scrollTo(0, 0); return; }
+    if (!S.db) return;
+    if (act === "edit-job") { const j = byId(S.jobs, id); if (j && S.canWrite) openJob(j); return; }
+    if (!S.canWrite) return;
+    if (act === "new-job") return openJob(null, el.dataset.date);
+    if (act === "new-client") return openClient();
+    if (act === "edit-client") return openClient(byId(S.clients, id));
+    if (act === "new-emp") return openEmp();
+    if (act === "edit-emp") return openEmp(byId(S.employees, id));
+    if (act === "new-shift") return openShift();
+    if (act === "edit-shift") return openShift(byId(S.shifts, id));
+    if (act === "clock-in") { el.disabled = true; await guard(S.db.collection("shifts").add({ employeeId: id, in: new Date().toISOString(), out: null, note: "" }), `${empName(id)} clocked in`); return; }
+    if (act === "clock-out") { el.disabled = true; const s = byId(S.shifts, id); await guard(S.db.doc("shifts/" + id).update({ out: new Date().toISOString() }), `${empName(s?.employeeId)} clocked out · ${hrs(shiftHours(s || { in: new Date().toISOString() }))} h`); return; }
+    if (act === "rename") {
+      const cfg = bizCfg();
+      const svcText = cfg.services.map(x => `${x.name} | ${x.hours} | ${x.from || ""}`).join("\n");
+      openDialog("Business settings", `${field("Business name", `<input name="name" id="b-name" value="${esc(cfg.name)}" placeholder="e.g. Sparkle & Shine Cleaning">`)}
+        <div class="grid2">${field("Phone shown to customers", `<input name="phone" id="b-phone" type="tel" value="${esc(cfg.phone)}">`)}${field("Email shown to customers", `<input name="email" id="b-email" type="email" value="${esc(cfg.email)}">`)}</div>
+        ${field("Area you serve", `<input name="area" id="b-area" value="${esc(cfg.area)}" placeholder="e.g. Springfield and nearby towns">`)}
+        ${field("Welcome text on the booking site", `<textarea name="intro" id="b-intro" placeholder="Leave empty for the standard text">${esc(cfg.intro)}</textarea>`)}
+        <div class="grid2">${field("Bookings start at", `<input type="time" name="open" id="b-open" value="${esc(cfg.open)}" step="900">`)}${field("Last job ends by", `<input type="time" name="close" id="b-close" value="${esc(cfg.close)}" step="900">`)}</div>
+        <div class="grid2">${field("Travel time between jobs", `<select name="buffer" id="b-buffer">${[0, 15, 30, 45, 60].map(m => `<option value="${m}" ${m === cfg.buffer ? "selected" : ""}>${m} min</option>`).join("")}</select>`)}
+        ${field("Offer start times every", `<select name="step" id="b-step">${[15, 30, 60].map(m => `<option value="${m}" ${m === cfg.step ? "selected" : ""}>${m} min</option>`).join("")}</select>`)}</div>
+        <div class="grid2">${field("Online bookings need at least", `<select name="minNoticeHours" id="b-notice">${[2, 4, 12, 24, 48, 72].map(h => `<option value="${h}" ${h === cfg.minNoticeHours ? "selected" : ""}>${h} hours notice</option>`).join("")}</select>`)}
+        ${field("Customers can book up to", `<select name="maxDaysAhead" id="b-ahead">${[14, 30, 60, 90, 180].map(d => `<option value="${d}" ${d === cfg.maxDaysAhead ? "selected" : ""}>${d} days ahead</option>`).join("")}</select>`)}</div>
+        ${field("Services (one per line: name | hours | starting price)", `<textarea name="services" id="b-services" rows="6" style="font-family:var(--f-mono);font-size:.85rem">${esc(svcText)}</textarea>`)}`, async fd => {
+        if (mins(fd.get("close")) <= mins(fd.get("open"))) return "The end of the day must be later than the start.";
+        const services = fd.get("services").split("\n").map(l => l.split("|").map(x => x.trim())).filter(p => p[0])
+          .map(([name, hours, from]) => ({ name: name.slice(0, 80), hours: Math.min(10, Math.max(0.5, Number(hours) || 2)), from: Number(String(from || "").replace(/[^\d.]/g, "")) || 0 }));
+        if (!services.length) return "Add at least one service.";
+        await guard(S.db.doc("public/settings").set({ name: fd.get("name").trim(), phone: fd.get("phone").trim(), email: fd.get("email").trim(), area: fd.get("area").trim(), intro: fd.get("intro").trim(),
+          open: fd.get("open"), close: fd.get("close"), buffer: Number(fd.get("buffer")), step: Number(fd.get("step")),
+          minNoticeHours: Number(fd.get("minNoticeHours")), maxDaysAhead: Number(fd.get("maxDaysAhead")), services }), "Settings saved");
+      });
+      return;
+    }
+    if (act === "bk-copy") {
+      const ta = $("#bk-msg");
+      try { await navigator.clipboard.writeText(ta.value); toast("Copied"); } catch (e) { ta.focus(); ta.select(); toast("Text selected. Press copy on your keyboard or phone."); }
+      return;
+    }
+    if (act === "bk-confirm") {
+      const b = S.bk; if (b.busy || !b.date || b.start == null) return;
+      buildJobMap();
+      const dur = Math.round((Number(b.duration) || 2) * 60);
+      const free = S.employees.filter(e => empFree(e, b.date, b.start, dur));
+      if (!free.length) { toast("That time was just taken. Pick another."); b.start = null; return render(); }
+      const cleaner = b.cleaner === "any" ? [...free].sort((x, y) => jobsOnDayFor(x.id, b.date) - jobsOnDayFor(y.id, b.date))[0] : free.find(e => e.id === b.cleaner);
+      if (!cleaner) { toast("That cleaner was just booked. Pick another."); b.cleaner = "any"; return render(); }
+      let client = byId(S.clients, b.clientId);
+      if (!client && !b.name.trim()) { toast("Enter the customer's name."); document.getElementById("bk-name")?.focus(); return; }
+      b.busy = true; render();
+      const now = new Date().toISOString();
+      if (!client) {
+        const body = { name: b.name.trim(), phone: b.phone.trim(), email: b.email.trim(), address: b.address.trim(), access: b.access.trim(), rate: "", frequency: "", notes: "", createdAt: now, updatedAt: now };
+        let ref = null;
+        try { ref = await S.db.collection("clients").add(body); } catch (e) { b.busy = false; render(); return guard(Promise.reject(e)); }
+
+        client = { id: ref.id, ...body };
+      }
+      const job = { clientId: client.id, date: b.date, start: hm(b.start), duration: Number(b.duration), service: b.service,
+        price: b.price === "" ? (Number(client.rate) || 0) : Number(b.price), staff: [cleaner.id], notes: b.notes.trim(), status: "scheduled", createdAt: now, updatedAt: now };
+      const ok = await guard(writeJob(null, job), "Booked");
+      b.busy = false;
+      if (ok) b.done = { date: b.date, title: `${client.name.replace(/^Example:\s*/, "")} · ${fmtDay(parseYmd(b.date))} at ${fmtTime(job.start)} with ${cleaner.name.replace(/^Example:\s*/, "")}`, message: bookingMessage(job, client, cleaner) };
+      return render();
+    }
+    if (act === "accept-online") {
+      const j = byId(S.jobs, id); if (!j) return;
+      el.disabled = true;
+      const clientId = j.clientId || await clientFromCustomer(j.customer);
+      if (!clientId) { el.disabled = false; return; }
+      const cl = byId(S.clients, clientId);
+      await guard(S.db.doc("jobs/" + j.id).update({ clientId, status: "scheduled", price: Number(j.price) || Number(cl?.rate) || SERVICE_FROM[j.service] || 0, updatedAt: new Date().toISOString() }),
+        "Confirmed. Check the price, then let the customer know.");
+      return;
+    }
+    if (act === "decline-online") {
+      const j = byId(S.jobs, id); if (!j) return;
+      if (!el.classList.contains("armed")) { el.classList.add("armed"); el.textContent = "Tap again to decline"; return; }
+      el.disabled = true;
+      await guard(writeJob(j.id, { ...stripId(j), status: "cancelled", updatedAt: new Date().toISOString() }, j), "Declined. That time is open again.");
+      return;
+    }
+    if (act === "add-staff") {
+      openDialog("Give someone staff access", `${field("Their Google account email", `<input name="email" id="st-email" type="email" placeholder="name@gmail.com" required>`)}
+        <div class="checks"><label><input type="checkbox" name="owner" id="st-owner"> Also let them manage staff access (co-owner)</label></div>
+        <p class="note">They sign in at this page with that Google account. Staff can see and change jobs, clients and timesheets.</p>`, async fd => {
+        const email = fd.get("email").trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return "Enter a valid email address.";
+        await guard(S.db.doc("staff/" + email).set({ role: fd.get("owner") === "on" ? "owner" : "staff", addedBy: S.me.email, addedAt: new Date().toISOString() }), "Access added");
+      });
+      return;
+    }
+    if (act === "remove-staff") {
+      if (id === S.me.email) { toast("You can't remove your own access."); return; }
+      if (!el.classList.contains("armed")) { el.classList.add("armed"); el.textContent = "Tap again to remove"; return; }
+      await guard(S.db.doc("staff/" + id).delete(), "Access removed");
+      return;
+    }
+  });
+  document.addEventListener("keydown", ev => { if (ev.key === "Enter" && ev.target.matches("tr[data-act]")) ev.target.click(); });
+  document.addEventListener("input", ev => {
+    if (ev.target.id === "clientSearch") { S.q = ev.target.value; $("#clientList").innerHTML = clientCards(); }
+    if (ev.target.matches("input[data-bk]")) S.bk[ev.target.dataset.bk] = ev.target.value;
+  });
+  document.addEventListener("change", ev => {
+    const el = ev.target; if (!el.matches("select[data-bk]")) return;
+    const k = el.dataset.bk; S.bk[k] = el.value;
+    if (k === "service") S.bk.duration = SERVICE_HOURS[el.value] || 2;
+    if (k === "clientId") S.bk.price = "";
+    render();
+  });
+
+  function tick() { const n = new Date(); $("#nowClock").textContent = fmtDay(n) + " · " + fmtClock(n); }
+  tick(); setInterval(() => { tick(); if (S.tab === "team" || S.tab === "overview") { if (!dlg.open && document.activeElement?.id !== "clientSearch") render(); } }, 60000);
+
+  /* ---------- data ---------- */
+  function signInScreen(html) { $("#main").innerHTML = `<section class="signin panel">${html}</section>`; }
+  async function boot() {
+    const fb = window.startFirebase();
+    if (!fb) { signInScreen(`<h2>Connect your database</h2><p>This site isn't connected to Firebase yet. Follow the setup steps in README.md, then reload.</p>`); return; }
+    const auth = firebase.auth(), db = fb.db;
+    $("#signOut").addEventListener("click", () => auth.signOut().then(() => location.reload()));
+    document.addEventListener("click", async ev => {
+      if (!ev.target.closest("#googleSignIn")) return;
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      try { await auth.signInWithPopup(provider); }
+      catch (e) { if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") auth.signInWithRedirect(provider); else toast("Sign-in didn't finish. Try again."); }
+    });
+    auth.onAuthStateChanged(async u => {
+      if (!u) {
+        $("#me").textContent = ""; $("#signOut").hidden = true;
+        signInScreen(`<div class="eyebrow">Staff only</div><h2>Sign in to Crew HQ</h2><p>Use the Google account the owner gave access to.</p><div><button class="btn primary big" id="googleSignIn" type="button">Sign in with Google</button></div><p class="note">Customers: <a href="./">book a cleaning here</a>.</p>`);
+        return;
+      }
+      const email = (u.email || "").toLowerCase();
+      S.me = { email, uid: u.uid };
+      $("#me").textContent = email; $("#signOut").hidden = false;
+      let staff = null;
+      try { staff = await db.doc("staff/" + email).get(); } catch (e) { staff = null; }
+      if (!staff || !staff.exists) {
+        signInScreen(`<h2>This account doesn't have access</h2><p><strong>${esc(email)}</strong> isn't on the staff list. Ask the owner to add it under Team &amp; Time → Staff access.</p>
+          <p class="note">Setting up for the first time? In the Firebase console, open Firestore Database, create a collection named <code>staff</code> with a document whose ID is <code>${esc(email)}</code> and a field <code>role</code> = <code>owner</code>. Then reload this page.</p>`);
+        return;
+      }
+      S.role = staff.data().role || "staff";
+      S.db = db;
+      $("#main").innerHTML = `<div class="banner info">Loading your jobs, clients and timesheets…</div>`;
+      const sub = (name, q) => q.onSnapshot(snap => {
+        S[name] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        S.loaded[name] = true; render();
+      }, e => { console.error(e); S.loaded[name] = true; render(); });
+      sub("clients", db.collection("clients"));
+      sub("employees", db.collection("employees"));
+      sub("jobs", db.collection("jobs").orderBy("date", "desc").limit(1000));
+      sub("shifts", db.collection("shifts").orderBy("in", "desc").limit(1000));
+      if (S.role === "owner") db.collection("staff").onSnapshot(snap => { S.staffList = snap.docs.map(d => ({ id: d.id, ...d.data() })); render(); }, () => {});
+      db.doc("public/settings").onSnapshot(x => {
+        S.biz = x.exists ? x.data() : null;
+        const cfg = bizCfg();
+        SERVICES = cfg.services.map(v => v.name);
+        SERVICE_HOURS = Object.fromEntries(cfg.services.map(v => [v.name, v.hours]));
+        SERVICE_FROM = Object.fromEntries(cfg.services.map(v => [v.name, v.from]));
+        if (!SERVICES.includes(S.bk.service)) { S.bk.service = SERVICES[0]; S.bk.duration = SERVICE_HOURS[SERVICES[0]]; }
+        render();
+      }, () => {});
+    });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

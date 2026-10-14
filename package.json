@@ -1,0 +1,18 @@
+{
+  "name": "cleaning-crew-site",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "node --test tests/availability.test.mjs && firebase emulators:exec --only firestore --project demo-crew \"node --test tests/rules.test.mjs\"",
+    "e2e": "firebase emulators:exec --only firestore,auth --project demo-crew \"node tests/e2e.mjs\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.19.0",
+    "firebase-tools": "^15.33.0"
+  },
+  "private": true
+}
