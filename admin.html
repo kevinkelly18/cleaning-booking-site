@@ -919,9 +919,9 @@ html, body { margin: 0; }
       return;
     }
     if (act === "add-staff") {
-      openDialog("Give someone staff access", `${field("Their Google account email", `<input name="email" id="st-email" type="email" placeholder="name@gmail.com" required>`)}
+      openDialog("Give someone staff access", `${field("Their email address", `<input name="email" id="st-email" type="email" placeholder="name@gmail.com or name@hotmail.com" required>`)}
         <div class="checks"><label><input type="checkbox" name="owner" id="st-owner"> Also let them manage staff access (co-owner)</label></div>
-        <p class="note">They sign in at this page with that Google account. Staff can see and change jobs, clients and timesheets.</p>`, async fd => {
+        <p class="note">They sign in at this page: Gmail/Google accounts use "Sign in with Google", any other email gets a sign-in link by email. Staff can see and change jobs, clients and timesheets.</p>`, async fd => {
         const email = fd.get("email").trim().toLowerCase();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return "Enter a valid email address.";
         await guard(S.db.doc("staff/" + email).set({ role: fd.get("owner") === "on" ? "owner" : "staff", addedBy: S.me.email, addedAt: new Date().toISOString() }), "Access added");
@@ -965,10 +965,65 @@ html, body { margin: 0; }
       try { await auth.signInWithPopup(provider); }
       catch (e) { if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") auth.signInWithRedirect(provider); else toast("Sign-in didn't finish. Try again."); }
     });
+
+    // Sign-in by emailed link: for staff without a Google account (Hotmail, Outlook, Yahoo, work email…).
+    const LINK_KEY = "crewhq.signinEmail";
+    const linkTarget = location.origin + location.pathname + (/[?&]emulator\b/.test(location.search) ? "?emulator" : "");
+    document.addEventListener("submit", async ev => {
+      if (ev.target.id === "emailLinkForm") {
+        ev.preventDefault();
+        const email = $("#signinEmail").value.trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast("Enter your full email address."); return; }
+        const btn = ev.target.querySelector("button"); btn.disabled = true;
+        try {
+          await auth.sendSignInLinkToEmail(email, { url: linkTarget, handleCodeInApp: true });
+          try { localStorage.setItem(LINK_KEY, email); } catch (e) {}
+          signInScreen(`<div class="eyebrow">Check your email</div><h2>We sent a sign-in link to ${esc(email)}</h2>
+            <p>Open the email on this device and tap the link to sign in. It can take a minute to arrive. If you don't see it, check your Junk or Spam folder.</p>
+            <p class="note">The link works once and expires after a while. <button class="link" id="restartSignIn" type="button">Use a different email</button></p>`);
+        } catch (e) { btn.disabled = false; toast(e.code === "auth/operation-not-allowed" ? "Email sign-in isn't turned on in Firebase yet. See README step 3." : "Couldn't send the link. Check the address and try again."); }
+      }
+      if (ev.target.id === "confirmEmailForm") {
+        ev.preventDefault();
+        finishLinkSignIn($("#confirmEmail").value.trim().toLowerCase());
+      }
+    });
+    document.addEventListener("click", ev => { if (ev.target.closest("#restartSignIn")) showSignIn(); });
+    async function finishLinkSignIn(email) {
+      try {
+        await auth.signInWithEmailLink(email, location.href);
+        try { localStorage.removeItem(LINK_KEY); } catch (e) {}
+        history.replaceState(null, "", linkTarget);
+      } catch (e) {
+        history.replaceState(null, "", linkTarget);
+        toast(e.code === "auth/invalid-email" ? "That email doesn't match the one the link was sent to." : "That sign-in link has expired or was already used. Send a new one.");
+        showSignIn();
+      }
+    }
+    function showSignIn() {
+      $("#me").textContent = ""; $("#signOut").hidden = true;
+      signInScreen(`<div class="eyebrow">Staff only</div><h2>Sign in to Crew HQ</h2>
+        <p>Use the email address the owner gave access to.</p>
+        <div><button class="btn primary big" id="googleSignIn" type="button">Sign in with Google</button></div>
+        <form id="emailLinkForm" class="field" novalidate style="gap:8px;border-top:1px solid var(--line);padding-top:14px">
+          <label for="signinEmail">Not a Gmail or Google account? We'll email you a sign-in link.</label>
+          <input id="signinEmail" type="email" autocomplete="email" placeholder="you@hotmail.com" required>
+          <div><button class="btn" type="submit">Email me a sign-in link</button></div>
+        </form>
+        <p class="note">Customers: <a href="./">book a cleaning here</a>.</p>`);
+    }
+    let pendingLink = auth.isSignInWithEmailLink(location.href);
+    if (pendingLink) {
+      let saved = null; try { saved = localStorage.getItem(LINK_KEY); } catch (e) {}
+      if (saved) finishLinkSignIn(saved);
+      else signInScreen(`<h2>Confirm your email</h2><p>You opened the sign-in link on a different device or browser. Type the email address it was sent to.</p>
+        <form id="confirmEmailForm" class="field" novalidate style="gap:8px"><input id="confirmEmail" type="email" autocomplete="email" required><div><button class="btn primary" type="submit">Sign in</button></div></form>`);
+    }
+
     auth.onAuthStateChanged(async u => {
       if (!u) {
-        $("#me").textContent = ""; $("#signOut").hidden = true;
-        signInScreen(`<div class="eyebrow">Staff only</div><h2>Sign in to Crew HQ</h2><p>Use the Google account the owner gave access to.</p><div><button class="btn primary big" id="googleSignIn" type="button">Sign in with Google</button></div><p class="note">Customers: <a href="./">book a cleaning here</a>.</p>`);
+        if (pendingLink) { pendingLink = false; return; } // the link sign-in above is still finishing
+        showSignIn();
         return;
       }
       const email = (u.email || "").toLowerCase();

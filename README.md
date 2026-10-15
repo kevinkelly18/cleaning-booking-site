@@ -25,11 +25,12 @@ It runs on two free services:
 
 ### 3. Turn on staff sign-in
 1. **Build → Authentication → Get started → Sign-in method → Google → Enable**, choose your support email, **Save**.
-2. Still in Authentication, open **Settings → Authorized domains → Add domain** and add `YOUR-GITHUB-USERNAME.github.io`.
+2. Also on **Sign-in method**: **Add new provider → Email/Password**, turn on **Email link (passwordless sign-in)**, **Save**. This lets staff with Hotmail, Outlook, Yahoo or other non-Google emails sign in with a link sent to their inbox.
+3. Still in Authentication, open **Settings → Authorized domains → Add domain** and add `YOUR-GITHUB-USERNAME.github.io`.
 
 ### 4. Make yourself the owner
 1. **Firestore Database → Data → Start collection**. Collection ID: `staff`.
-2. Document ID: **your Google email address in lowercase** (e.g. `you@gmail.com`).
+2. Document ID: **the owner's email address in lowercase** (e.g. `you@gmail.com` or `you@hotmail.com`). Gmail addresses sign in with Google; any other email signs in with an emailed link.
 3. Add a field: name `role`, type string, value `owner`. **Save**.
 
 You only do this once. After that you add staff from inside the app (Team & Time → Staff access).

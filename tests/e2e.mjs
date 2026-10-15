@@ -114,6 +114,37 @@ await env.withSecurityRulesDisabled(async ctx => {
   assert.equal(holds, jobs.reduce((a, j) => a + j.holds.length, 0));
 });
 
+// 6. Owner gives access to a non-Google email; that person signs in with an emailed link.
+await admin.click("[data-tab=team]");
+await admin.click("[data-act=add-staff]");
+await admin.fill("#st-email", "Linkstaff@Example.com");
+await admin.click("#dlgForm button[type=submit]");
+await admin.waitForSelector(".staffrow:has-text('linkstaff@example.com')");
+const staff2 = await page();
+await staff2.goto(base + "admin.html?emulator");
+await staff2.fill("#signinEmail", "linkstaff@example.com");
+await staff2.click("#emailLinkForm button[type=submit]");
+await staff2.waitForSelector("text=We sent a sign-in link");
+const oob = await (await fetch("http://127.0.0.1:9099/emulator/v1/projects/demo-crew/oobCodes")).json();
+const code = oob.oobCodes.filter(c => c.email === "linkstaff@example.com" && c.requestType === "EMAIL_SIGNIN").at(-1).oobCode;
+await staff2.goto(base + `admin.html?emulator&mode=signIn&oobCode=${code}&apiKey=demo-key&lang=en`);
+await staff2.waitForSelector("text=Today at a glance");
+assert.match(await staff2.textContent("#me"), /linkstaff@example.com/);
+assert.equal(new URL(staff2.url()).searchParams.has("oobCode"), false, "sign-in code removed from the address bar");
+await staff2.click("[data-tab=team]");
+assert.equal(await staff2.locator("[data-act=add-staff]").count(), 0, "regular staff can't manage access");
+
+// A stranger with an email link gets no data.
+const stranger = await page();
+await stranger.goto(base + "admin.html?emulator");
+await stranger.fill("#signinEmail", "stranger@example.com");
+await stranger.click("#emailLinkForm button[type=submit]");
+await stranger.waitForSelector("text=We sent a sign-in link");
+const oob2 = await (await fetch("http://127.0.0.1:9099/emulator/v1/projects/demo-crew/oobCodes")).json();
+const code2 = oob2.oobCodes.filter(c => c.email === "stranger@example.com").at(-1).oobCode;
+await stranger.goto(base + `admin.html?emulator&mode=signIn&oobCode=${code2}&apiKey=demo-key&lang=en`);
+await stranger.waitForSelector("text=This account doesn't have access");
+
 // Phone-width render of the customer page.
 const phone = await page();
 await phone.setViewportSize({ width: 390, height: 844 });
