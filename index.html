@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Book a Cleaning</title>
+<title>Kristally Klean · Book a Cleaning</title>
 <meta name="description" content="Pick a day, time and cleaner and book your home or office cleaning online.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
@@ -44,7 +44,7 @@
 </head>
 <body>
 <header class="site"><div class="wrap">
-  <span class="name" id="bizName">Book a cleaning</span>
+  <span class="name" id="bizName">Kristally Klean</span>
   <span class="contact" id="contact"></span>
 </div></header>
 
@@ -88,8 +88,8 @@
 
   function renderHeader() {
     const c = S.cfg;
-    document.title = c.name ? `Book a Cleaning · ${c.name}` : "Book a Cleaning";
-    $("#bizName").textContent = c.name || "Book a cleaning";
+    document.title = `${c.name} · Book a Cleaning`;
+    $("#bizName").textContent = c.name;
     $("#area").textContent = c.area ? `Serving ${c.area}` : "";
     if (c.intro) $("#intro").textContent = c.intro;
     $("#contact").innerHTML = [c.phone && `Call or text <a href="tel:${esc(c.phone.replace(/[^+\d]/g, ""))}">${esc(c.phone)}</a>`, c.email && `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`].filter(Boolean).join("");

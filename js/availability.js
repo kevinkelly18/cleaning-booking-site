@@ -27,7 +27,7 @@
     const s = raw || {};
     const services = Array.isArray(s.services) && s.services.length ? s.services : DEFAULT_SERVICES;
     return {
-      name: s.name || "", phone: s.phone || "", email: s.email || "", area: s.area || "", intro: s.intro || "",
+      name: s.name || "Kristally Klean", phone: s.phone || "", email: s.email || "", area: s.area || "", intro: s.intro || "",
       open: s.open || "08:00", close: s.close || "18:00",
       buffer: Number.isFinite(Number(s.buffer)) ? Number(s.buffer) : 30,
       step: Number(s.step) || 30,

@@ -1,9 +1,9 @@
-# Cleaning business website
+# Kristally Klean website
 
 Two pages:
 
 - **`index.html` — booking site for customers.** Customers pick a service, a day on the calendar, an open time and a cleaner from a dropdown of who's free, then enter their details. No account needed. Their booking goes straight onto your schedule and blocks that cleaner's time so nobody else can take it.
-- **`admin.html` — Crew HQ, for you and your staff.** Sign in with Google. Confirm or decline online bookings, book jobs yourself, keep client details, set each cleaner's work days and hours, clock in/out, and see weekly timesheets with estimated pay.
+- **`admin.html` — the staff app, for you and your staff.** Sign in with Google. Confirm or decline online bookings, book jobs yourself, keep client details, set each cleaner's work days and hours, clock in/out, and see weekly timesheets with estimated pay.
 
 It runs on two free services:
 
