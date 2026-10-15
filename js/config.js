@@ -4,10 +4,12 @@
  * These values are meant to be public; the security rules in firestore.rules protect your data.
  */
 window.FIREBASE_CONFIG = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  appId: "PASTE_APP_ID",
+  apiKey: "AIzaSyAcdoCC9sSagYdmJNd9BerTObG50HVXxRU",
+  authDomain: "kristally-klean.firebaseapp.com",
+  projectId: "kristally-klean",
+  storageBucket: "kristally-klean.firebasestorage.app",
+  messagingSenderId: "827986917812",
+  appId: "1:827986917812:web:c18c7b334d6872d25a5ae1",
 };
 
 /* Shared start-up used by both pages. */
