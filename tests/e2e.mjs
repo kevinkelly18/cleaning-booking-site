@@ -122,6 +122,7 @@ await admin.click("#dlgForm button[type=submit]");
 await admin.waitForSelector(".staffrow:has-text('linkstaff@example.com')");
 const staff2 = await page();
 await staff2.goto(base + "admin.html?emulator");
+await staff2.click("[data-auth=link]");
 await staff2.fill("#signinEmail", "linkstaff@example.com");
 await staff2.click("#emailLinkForm button[type=submit]");
 await staff2.waitForSelector("text=We sent a sign-in link");
@@ -134,9 +135,36 @@ assert.equal(new URL(staff2.url()).searchParams.has("oobCode"), false, "sign-in 
 await staff2.click("[data-tab=team]");
 assert.equal(await staff2.locator("[data-act=add-staff]").count(), 0, "regular staff can't manage access");
 
+// Staff sets a password, signs out, and signs back in with it (no link).
+await staff2.click("#setPassword");
+await staff2.fill("#pw1", "clean-pass-123"); await staff2.fill("#pw2", "clean-pass-123");
+await staff2.click("#dlgForm button[type=submit]");
+await staff2.waitForSelector("text=Password saved");
+await staff2.click("#signOut");
+await staff2.waitForSelector("#passwordForm");
+await staff2.fill("#signinEmail", "linkstaff@example.com");
+await staff2.fill("#signinPassword", "wrong-pass");
+await staff2.click("#passwordForm button[type=submit]");
+await staff2.waitForSelector("text=Wrong email or password");
+await staff2.fill("#signinPassword", "clean-pass-123");
+await staff2.click("#passwordForm button[type=submit]");
+await staff2.waitForSelector("#me:has-text(\"linkstaff@example.com\")");
+await staff2.waitForSelector(".section-head");
+assert.match(await staff2.textContent("#me"), /linkstaff@example.com/);
+
+// A brand-new password account must confirm its email before it gets in.
+const fresh = await page();
+await fresh.goto(base + "admin.html?emulator");
+await fresh.click("[data-auth=create]");
+await fresh.fill("#newEmail", "newbie@example.com");
+await fresh.fill("#newPassword", "newbie-pass"); await fresh.fill("#newPassword2", "newbie-pass");
+await fresh.click("#createForm button[type=submit]");
+await fresh.waitForSelector("text=Confirm your email");
+
 // A stranger with an email link gets no data.
 const stranger = await page();
 await stranger.goto(base + "admin.html?emulator");
+await stranger.click("[data-auth=link]");
 await stranger.fill("#signinEmail", "stranger@example.com");
 await stranger.click("#emailLinkForm button[type=submit]");
 await stranger.waitForSelector("text=We sent a sign-in link");

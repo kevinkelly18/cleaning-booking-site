@@ -236,7 +236,7 @@ html, body { margin: 0; }
   <div class="wrap">
     <div class="brand"><h1 id="bizName">Kristally Klean</h1><button class="rename" data-act="rename" type="button">Settings</button></div>
     <span class="clock" id="nowClock"></span>
-    <span class="account"><span id="me"></span><button class="btn small" id="signOut" type="button" hidden>Sign out</button></span>
+    <span class="account"><span id="me"></span><button class="btn small" id="setPassword" type="button" hidden>Password</button><button class="btn small" id="signOut" type="button" hidden>Sign out</button></span>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="overview" aria-selected="true" type="button">Today</button>
       <button role="tab" data-tab="book" aria-selected="false" type="button">Book</button>
@@ -1001,17 +1001,93 @@ html, body { margin: 0; }
       }
     }
     function showSignIn() {
-      $("#me").textContent = ""; $("#signOut").hidden = true;
+      $("#me").textContent = ""; $("#signOut").hidden = true; $("#setPassword").hidden = true;
       signInScreen(`<div class="eyebrow">Staff only</div><h2>Sign in to Kristally Klean</h2>
         <p>Use the email address the owner gave access to.</p>
-        <div><button class="btn primary big" id="googleSignIn" type="button">Sign in with Google</button></div>
-        <form id="emailLinkForm" class="field" novalidate style="gap:8px;border-top:1px solid var(--line);padding-top:14px">
-          <label for="signinEmail">Not a Gmail or Google account? We'll email you a sign-in link.</label>
-          <input id="signinEmail" type="email" autocomplete="email" placeholder="you@hotmail.com" required>
-          <div><button class="btn" type="submit">Email me a sign-in link</button></div>
+        <form id="passwordForm" class="field" novalidate style="gap:10px">
+          <div class="field"><label for="signinEmail">Email</label><input id="signinEmail" type="email" autocomplete="username" placeholder="you@hotmail.com" required></div>
+          <div class="field"><label for="signinPassword">Password</label><input id="signinPassword" type="password" autocomplete="current-password" required></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary big" type="submit">Sign in</button></div>
         </form>
+        <p class="note">No password yet? <button class="link" data-auth="create" type="button">Create one</button> · <button class="link" data-auth="reset" type="button">Forgot password</button> · <button class="link" data-auth="link" type="button">Email me a sign-in link instead</button></p>
+        <div style="border-top:1px solid var(--line);padding-top:14px"><button class="btn" id="googleSignIn" type="button">Sign in with Google</button></div>
         <p class="note">Customers: <a href="./">book a cleaning here</a>.</p>`);
     }
+    // Email + password sign-in. New passwords need the email confirmed once, so no one can claim someone else's address.
+    const authMsg = e => ({
+      "auth/invalid-credential": "Wrong email or password. Try again, or use Forgot password.",
+      "auth/wrong-password": "Wrong email or password. Try again, or use Forgot password.",
+      "auth/user-not-found": "Wrong email or password. Try again, or use Forgot password.",
+      "auth/invalid-email": "Enter your full email address.",
+      "auth/missing-password": "Enter your password.",
+      "auth/weak-password": "Use at least 6 characters for the password.",
+      "auth/too-many-requests": "Too many tries. Wait a few minutes and try again.",
+      "auth/operation-not-allowed": "Password sign-in isn't turned on in Firebase yet (Authentication → Sign-in method → Email/Password).",
+      "auth/email-already-in-use": "This email already has an account. Use Forgot password to set a password for it.",
+      "auth/requires-recent-login": "For security, sign out and back in, then set your password.",
+    }[e?.code] || "That didn't work. Check your connection and try again.");
+    const formEmail = () => ($("#signinEmail")?.value || "").trim().toLowerCase();
+    document.addEventListener("submit", async ev => {
+      if (ev.target.id === "passwordForm") {
+        ev.preventDefault();
+        const btn = ev.target.querySelector("button[type=submit]"); btn.disabled = true;
+        try { await auth.signInWithEmailAndPassword(formEmail(), $("#signinPassword").value); }
+        catch (e) { btn.disabled = false; toast(authMsg(e)); }
+      }
+      if (ev.target.id === "createForm") {
+        ev.preventDefault();
+        const email = $("#newEmail").value.trim().toLowerCase(), pw = $("#newPassword").value;
+        if (pw !== $("#newPassword2").value) { toast("The two passwords don't match."); return; }
+        const btn = ev.target.querySelector("button[type=submit]"); btn.disabled = true;
+        try {
+          const cred = await auth.createUserWithEmailAndPassword(email, pw);
+          await cred.user.sendEmailVerification({ url: linkTarget });
+        } catch (e) { btn.disabled = false; toast(authMsg(e)); }
+      }
+    });
+    document.addEventListener("click", async ev => {
+      const a = ev.target.closest("[data-auth]")?.dataset.auth;
+      if (a === "create") {
+        signInScreen(`<div class="eyebrow">Staff only</div><h2>Create your password</h2>
+          <form id="createForm" class="field" novalidate style="gap:10px">
+            <div class="field"><label for="newEmail">Email the owner gave access to</label><input id="newEmail" type="email" autocomplete="username" value="${esc(formEmail())}" required></div>
+            <div class="field"><label for="newPassword">New password (at least 6 characters)</label><input id="newPassword" type="password" autocomplete="new-password" required></div>
+            <div class="field"><label for="newPassword2">Type it again</label><input id="newPassword2" type="password" autocomplete="new-password" required></div>
+            <div><button class="btn primary big" type="submit">Create password</button></div>
+          </form>
+          <p class="note">We'll send one email to confirm the address is yours. After that you just use your password. <button class="link" id="restartSignIn" type="button">Back to sign in</button></p>`);
+      }
+      if (a === "reset") {
+        const email = formEmail();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast("Type your email in the Email box first."); $("#signinEmail")?.focus(); return; }
+        try { await auth.sendPasswordResetEmail(email, { url: linkTarget }); toast("If that email has an account, a link to set a new password is on its way. Check Junk too."); }
+        catch (e) { toast(authMsg(e)); }
+      }
+      if (a === "link") {
+        signInScreen(`<div class="eyebrow">Staff only</div><h2>Email me a sign-in link</h2>
+          <form id="emailLinkForm" class="field" novalidate style="gap:8px">
+            <input id="signinEmail" type="email" autocomplete="email" placeholder="you@hotmail.com" value="${esc(formEmail())}" required>
+            <div><button class="btn primary" type="submit">Email me a sign-in link</button></div>
+          </form>
+          <p class="note"><button class="link" id="restartSignIn" type="button">Back to password sign-in</button></p>`);
+      }
+      if (a === "resend-verify") {
+        try { await auth.currentUser.sendEmailVerification({ url: linkTarget }); toast("Sent. Check your inbox and Junk folder."); } catch (e) { toast(authMsg(e)); }
+      }
+      if (a === "verified") { await auth.currentUser.reload(); await auth.currentUser.getIdToken(true); location.reload(); }
+    });
+    $("#setPassword").addEventListener("click", () => {
+      openDialog("Set your password", `<p class="note">Next time, sign in with ${esc(auth.currentUser?.email || "")} and this password. No email link needed.</p>
+        <div class="field"><label for="pw1">New password (at least 6 characters)</label><input id="pw1" name="pw1" type="password" autocomplete="new-password" required></div>
+        <div class="field"><label for="pw2">Type it again</label><input id="pw2" name="pw2" type="password" autocomplete="new-password" required></div>`, async fd => {
+        const pw = fd.get("pw1");
+        if (pw.length < 6) return "Use at least 6 characters.";
+        if (pw !== fd.get("pw2")) return "The two passwords don't match.";
+        try { await auth.currentUser.updatePassword(pw); toast("Password saved. Use it next time you sign in."); }
+        catch (e) { return authMsg(e); }
+      });
+    });
+
     let pendingLink = auth.isSignInWithEmailLink(location.href);
     if (pendingLink) {
       let saved = null; try { saved = localStorage.getItem(LINK_KEY); } catch (e) {}
@@ -1028,10 +1104,15 @@ html, body { margin: 0; }
       }
       const email = (u.email || "").toLowerCase();
       S.me = { email, uid: u.uid };
-      $("#me").textContent = email; $("#signOut").hidden = false;
+      $("#me").textContent = email; $("#signOut").hidden = false; $("#setPassword").hidden = false;
       let staff = null;
       try { staff = await db.doc("staff/" + email).get(); } catch (e) { staff = null; }
       if (!staff || !staff.exists) {
+        if (!u.emailVerified) {
+          signInScreen(`<h2>Confirm your email</h2><p>We sent an email to <strong>${esc(email)}</strong>. Open it and tap the link to confirm the address is yours. You only do this once. Check Junk if it's not in your inbox.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-auth="verified" type="button">I've confirmed it</button><button class="btn" data-auth="resend-verify" type="button">Send it again</button></div>`);
+          return;
+        }
         signInScreen(`<h2>This account doesn't have access</h2><p><strong>${esc(email)}</strong> isn't on the staff list. Ask the owner to add it under Team &amp; Time → Staff access.</p>
           <p class="note">Setting up for the first time? In the Firebase console, open Firestore Database, create a collection named <code>staff</code> with a document whose ID is <code>${esc(email)}</code> and a field <code>role</code> = <code>owner</code>. Then reload this page.</p>`);
         return;
