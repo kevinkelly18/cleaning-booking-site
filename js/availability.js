@@ -33,6 +33,7 @@
       step: Number(s.step) || 30,
       minNoticeHours: Number.isFinite(Number(s.minNoticeHours)) ? Number(s.minNoticeHours) : 24,
       maxDaysAhead: Number(s.maxDaysAhead) || 60,
+      cleanerShare: Number.isFinite(Number(s.cleanerShare)) && s.cleanerShare !== "" && s.cleanerShare != null ? Number(s.cleanerShare) : 80,
       services,
     };
   }

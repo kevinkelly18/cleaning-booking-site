@@ -524,12 +524,12 @@ html, body { margin: 0; }
     const weekShifts = S.shifts.filter(s => { const d = new Date(s.in); return d >= wk0 && d < wk1; }).sort((a, b) => a.in.localeCompare(b.in));
     const emps = [...S.employees].sort((a, b) => (b.active !== false) - (a.active !== false) || (a.name || "").localeCompare(b.name || ""));
     const rowEmps = emps.filter(e => e.active !== false || weekShifts.some(s => s.employeeId === e.id));
-    let grandH = 0, grandP = 0;
+    let grandH = 0;
     const rows = rowEmps.map(e => {
       const per = days.map(d => weekShifts.filter(s => s.employeeId === e.id && ymd(new Date(s.in)) === ymd(d)).reduce((a, s) => a + shiftHours(s), 0));
-      const tot = per.reduce((a, b) => a + b, 0), pay = tot * (Number(e.rate) || 0);
-      grandH += tot; grandP += pay;
-      return `<tr><td>${esc(e.name)}</td>${per.map(h => `<td class="${h ? "" : "zero"}">${h ? hrs(h) : "–"}</td>`).join("")}<td><strong>${hrs(tot)}</strong></td><td>${money(pay)}</td></tr>`;
+      const tot = per.reduce((a, b) => a + b, 0);
+      grandH += tot;
+      return `<tr><td>${esc(e.name)}</td>${per.map(h => `<td class="${h ? "" : "zero"}">${h ? hrs(h) : "–"}</td>`).join("")}<td><strong>${hrs(tot)}</strong></td></tr>`;
     }).join("");
 
     return `${exampleBanner()}
@@ -547,8 +547,11 @@ html, body { margin: 0; }
       }).join("")}</div>` : `<div class="empty">Add your team so you can assign them to jobs and track their hours.</div>`}
     </section>
     <section>
+      ${payPanel(wk0, wk1)}
+    </section>
+    <section>
       <div class="section-head">
-        <div><div class="eyebrow">Timesheet</div><div class="weeknav">
+        <div><div class="eyebrow">Hours (from the time clock)</div><div class="weeknav">
           <button class="btn small" data-act="tsweek" data-d="-7" type="button" aria-label="Previous week">←</button>
           <span class="label">${esc(wk0.toLocaleDateString(undefined, { month: "short", day: "numeric" }))} – ${esc(addDays(wk0, 6).toLocaleDateString(undefined, { month: "short", day: "numeric" }))}</span>
           <button class="btn small" data-act="tsweek" data-d="7" type="button" aria-label="Next week">→</button>
@@ -556,9 +559,9 @@ html, body { margin: 0; }
         ${S.canWrite && S.employees.length ? `<button class="btn" data-act="new-shift" type="button">+ Add time entry</button>` : ""}
       </div>
       ${rowEmps.length ? `<div class="tablewrap"><table>
-        <thead><tr><th>Team member</th>${days.map(d => `<th>${esc(d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" }))}</th>`).join("")}<th>Hours</th><th>Est. pay</th></tr></thead>
+        <thead><tr><th>Team member</th>${days.map(d => `<th>${esc(d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" }))}</th>`).join("")}<th>Hours</th></tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr><td>Total</td><td colspan="7"></td><td>${hrs(grandH)}</td><td>${money(grandP)}</td></tr></tfoot>
+        <tfoot><tr><td>Total</td><td colspan="7"></td><td>${hrs(grandH)}</td></tr></tfoot>
       </table></div>` : ""}
       <h3 style="margin:20px 0 8px;font-size:1rem">Time entries this week</h3>
       ${weekShifts.length ? `<div class="tablewrap"><table>
@@ -569,6 +572,48 @@ html, body { margin: 0; }
       </table></div><p class="note">Tap an entry to fix a missed clock-out or wrong time.</p>` : `<div class="empty">No hours logged this week. Use Clock in on a team member above.</div>`}
     </section>
     ${staffAccessPanel()}`;
+  }
+
+  // Cleaners are paid a share of each finished job's price; a shared job splits that share evenly.
+  function payPanel(wk0, wk1) {
+    const share = bizCfg().cleanerShare / 100;
+    const inWeek = j => { const d = parseYmd(j.date); return d >= wk0 && d < wk1; };
+    const done = S.jobs.filter(j => j.status === "done" && inWeek(j)).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    const notDone = S.jobs.filter(j => (j.status === "scheduled" || j.status === "new") && inWeek(j) && j.date <= ymd(new Date())).length;
+    const per = new Map();
+    let total = 0, toCleaners = 0;
+    for (const j of done) {
+      const price = Number(j.price) || 0, staff = j.staff || [];
+      total += price;
+      if (!staff.length) continue;
+      const each = price * share / staff.length;
+      toCleaners += each * staff.length;
+      for (const id of staff) { const p = per.get(id) || { jobs: 0, pay: 0 }; p.jobs++; p.pay += each; per.set(id, p); }
+    }
+    const pct = Math.round(share * 100);
+    const rows = [...per.entries()].sort((a, b) => empName(a[0]).localeCompare(empName(b[0])))
+      .map(([id, p]) => `<tr><td>${esc(empName(id))}</td><td>${p.jobs}</td><td><strong>${money(p.pay)}</strong></td></tr>`).join("");
+    return `<div class="section-head" style="margin-top:8px">
+        <div><div class="eyebrow">Pay · ${pct}% to cleaners, ${100 - pct}% to the business</div><h2>Pay for this week</h2></div>
+        <div class="weeknav">
+          <button class="btn small" data-act="tsweek" data-d="-7" type="button" aria-label="Previous week">←</button>
+          <span class="label">${esc(wk0.toLocaleDateString(undefined, { month: "short", day: "numeric" }))} – ${esc(addDays(wk0, 6).toLocaleDateString(undefined, { month: "short", day: "numeric" }))}</span>
+          <button class="btn small" data-act="tsweek" data-d="7" type="button" aria-label="Next week">→</button>
+          <button class="btn small" data-act="tsweek" data-d="0" type="button">This week</button></div>
+      </div>
+      ${notDone ? `<div class="banner info" style="margin-bottom:10px"><span>${notDone} ${notDone === 1 ? "job" : "jobs"} from this week ${notDone === 1 ? "isn't" : "aren't"} marked <strong>Done</strong> yet, so ${notDone === 1 ? "it isn't" : "they aren't"} counted. Open the job and set Status to Done.</span></div>` : ""}
+      ${done.length ? `<div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px">
+          <div class="stat"><div class="v">${money(total)}</div><div class="l">finished jobs</div></div>
+          <div class="stat"><div class="v">${money(toCleaners)}</div><div class="l">to cleaners (${pct}%)</div></div>
+          <div class="stat"><div class="v">${money(total - toCleaners)}</div><div class="l">to the business</div></div>
+        </div>
+        ${rows ? `<div class="tablewrap"><table><thead><tr><th>Cleaner</th><th>Jobs done</th><th>Pay</th></tr></thead><tbody>${rows}</tbody></table></div>` : ""}
+        <details style="margin-top:10px"><summary class="note" style="cursor:pointer">Show each job</summary>
+          <div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Day</th><th>Client</th><th>Job total</th><th>Cleaners</th><th>Each cleaner gets</th><th>Business</th></tr></thead><tbody>
+          ${done.map(j => { const price = Number(j.price) || 0, n = (j.staff || []).length, each = n ? price * share / n : 0;
+            return `<tr class="click" data-act="edit-job" data-id="${esc(j.id)}" tabindex="0"><td>${esc(fmtDay(parseYmd(j.date)))}</td><td style="text-align:left">${esc(jobClient(j)?.name || "")}</td><td>${money(price)}</td><td style="text-align:left">${n ? (j.staff || []).map(id => esc(empName(id))).join(", ") : "No one assigned"}</td><td>${n ? money(each) : "–"}</td><td>${money(price - each * n)}</td></tr>`; }).join("")}
+          </tbody></table></div></details>`
+      : `<div class="empty">No finished jobs this week yet. Pay is worked out from jobs marked <strong>Done</strong>.</div>`}`;
   }
 
   function bookingMessage(job, client, cleaner) {
@@ -769,7 +814,7 @@ html, body { margin: 0; }
     const isNew = !e; e = e || { active: true };
     openDialog(isNew ? "Add team member" : e.name, `
       ${field("Name", `<input name="name" id="e-name" value="${esc(e.name)}" required>`)}
-      <div class="grid2">${field("Phone", `<input name="phone" id="e-phone" type="tel" value="${esc(e.phone)}">`)}${field("Hourly pay ($)", `<input name="rate" id="e-rate" type="number" min="0" step="0.25" value="${esc(e.rate)}">`)}</div>
+      <div class="grid2">${field("Phone", `<input name="phone" id="e-phone" type="tel" value="${esc(e.phone)}">`)}<p class="note" style="align-self:end">Paid ${bizCfg().cleanerShare}% of each job they finish (change in Settings).</p></div>
       <div class="field"><span class="lbl">Days they work</span><div class="checks">${DOW.map(([i, d]) => `<label><input type="checkbox" name="days" value="${i}" ${(e.days || DEFAULT_DAYS).includes(i) ? "checked" : ""}> ${d}</label>`).join("")}</div></div>
       <div class="grid2">${field("Available from", `<input type="time" name="from" id="e-from" value="${esc(e.from || bizCfg().open)}" step="900">`)}${field("Until", `<input type="time" name="to" id="e-to" value="${esc(e.to || bizCfg().close)}" step="900">`)}</div>
       <div class="checks"><label><input type="checkbox" name="active" id="e-active" ${e.active !== false ? "checked" : ""}> Currently working for us</label></div>
@@ -778,7 +823,7 @@ html, body { margin: 0; }
       const name = fd.get("name").trim();
       if (!name) return "Enter the team member's name.";
       if (mins(fd.get("to")) <= mins(fd.get("from"))) return "'Until' must be later than 'Available from'.";
-      const body = { name, phone: fd.get("phone").trim(), rate: Number(fd.get("rate")) || 0, active: fd.get("active") === "on",
+      const body = { name, phone: fd.get("phone").trim(), active: fd.get("active") === "on",
         days: fd.getAll("days").map(Number), from: fd.get("from") || bizCfg().open, to: fd.get("to") || bizCfg().close, updatedAt: new Date().toISOString() };
       const ref = isNew ? S.db.collection("employees").doc() : S.db.doc("employees/" + e.id);
       const batch = S.db.batch();
@@ -859,6 +904,7 @@ html, body { margin: 0; }
         ${field("Offer start times every", `<select name="step" id="b-step">${[15, 30, 60].map(m => `<option value="${m}" ${m === cfg.step ? "selected" : ""}>${m} min</option>`).join("")}</select>`)}</div>
         <div class="grid2">${field("Online bookings need at least", `<select name="minNoticeHours" id="b-notice">${[2, 4, 12, 24, 48, 72].map(h => `<option value="${h}" ${h === cfg.minNoticeHours ? "selected" : ""}>${h} hours notice</option>`).join("")}</select>`)}
         ${field("Customers can book up to", `<select name="maxDaysAhead" id="b-ahead">${[14, 30, 60, 90, 180].map(d => `<option value="${d}" ${d === cfg.maxDaysAhead ? "selected" : ""}>${d} days ahead</option>`).join("")}</select>`)}</div>
+        ${field("Cleaner's share of each job (%)", `<input name="cleanerShare" id="b-share" type="number" min="0" max="100" step="1" value="${esc(cfg.cleanerShare)}">`)}
         ${field("Services (one per line: name | hours | starting price)", `<textarea name="services" id="b-services" rows="6" style="font-family:var(--f-mono);font-size:.85rem">${esc(svcText)}</textarea>`)}`, async fd => {
         if (mins(fd.get("close")) <= mins(fd.get("open"))) return "The end of the day must be later than the start.";
         const services = fd.get("services").split("\n").map(l => l.split("|").map(x => x.trim())).filter(p => p[0])
@@ -866,7 +912,7 @@ html, body { margin: 0; }
         if (!services.length) return "Add at least one service.";
         await guard(S.db.doc("public/settings").set({ name: fd.get("name").trim(), phone: fd.get("phone").trim(), email: fd.get("email").trim(), area: fd.get("area").trim(), intro: fd.get("intro").trim(),
           open: fd.get("open"), close: fd.get("close"), buffer: Number(fd.get("buffer")), step: Number(fd.get("step")),
-          minNoticeHours: Number(fd.get("minNoticeHours")), maxDaysAhead: Number(fd.get("maxDaysAhead")), services }), "Settings saved");
+          minNoticeHours: Number(fd.get("minNoticeHours")), maxDaysAhead: Number(fd.get("maxDaysAhead")), cleanerShare: Math.min(100, Math.max(0, Number(fd.get("cleanerShare")) || 0)), services }), "Settings saved");
       });
       return;
     }

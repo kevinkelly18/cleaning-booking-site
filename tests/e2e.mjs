@@ -43,7 +43,6 @@ await admin.waitForSelector("#bizName:has-text('Sparkle Test Co')");
 await admin.click("[data-tab=team]");
 await admin.click("[data-act=new-emp]");
 await admin.fill("#e-name", "Maria Lopez");
-await admin.fill("#e-rate", "22");
 for (const d of ["0"]) await admin.check(`#dlgForm input[name=days][value="${d}"]`); // also Sundays, so any test day works
 await admin.click("#dlgForm button[type=submit]");
 await admin.waitForSelector(".emp h3:has-text('Maria Lopez')");
@@ -113,6 +112,27 @@ await env.withSecurityRulesDisabled(async ctx => {
   assert.equal(jobs.length, 2);
   assert.equal(holds, jobs.reduce((a, j) => a + j.holds.length, 0));
 });
+
+// 5b. Finished jobs pay the cleaner 80%, the business keeps 20%.
+await env.withSecurityRulesDisabled(async ctx => {
+  const db = ctx.firestore();
+  const jobs = await getDocs(collection(db, "jobs"));
+  const { updateDoc } = await import("firebase/firestore");
+  const monday = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; })();
+  const ds = monday.getFullYear() + "-" + String(monday.getMonth() + 1).padStart(2, "0") + "-" + String(monday.getDate()).padStart(2, "0");
+  // one solo job ($150) and one job shared by two cleaners ($200) this week
+  await updateDoc(jobs.docs[0].ref, { status: "done", price: 150, date: ds });
+  await updateDoc(jobs.docs[1].ref, { status: "done", price: 200, date: ds, staff: [jobs.docs[0].data().staff[0], "someone-else"] });
+});
+await admin.click("[data-tab=team]");
+await admin.click("[data-act=tsweek][data-d='0'] >> nth=0");
+await admin.waitForSelector("text=Pay for this week");
+const payText = (await admin.textContent("#main")).replace(/\s+/g, " ");
+assert.match(payText, /\$350\s*finished jobs/, payText.slice(0, 400));
+assert.match(payText, /\$280\s*to cleaners \(80%\)/);
+assert.match(payText, /\$70\s*to the business/);
+assert.match(payText, /Maria Lopez\s*2\s*\$200/); // 150*0.8 + 200*0.8/2
+await admin.screenshot({ path: "/tmp/claude-0/-home-user/fcf2d72e-4f9c-52c5-a302-1417875de0d9/scratchpad/shot-pay.png", fullPage: true });
 
 // 6. Owner gives access to a non-Google email; that person signs in with an emailed link.
 await admin.click("[data-tab=team]");
