@@ -69,6 +69,9 @@ await cust.fill("#f-name", "Pat Customer");
 await cust.fill("#f-phone", "555-222-3333");
 await cust.fill("#f-email", "pat@example.com");
 await cust.fill("#f-address", "12 Oak Ave");
+await cust.selectOption("#f-beds", "3"); await cust.selectOption("#f-baths", "2");
+await cust.selectOption("#f-often", "Every 2 weeks"); await cust.selectOption("#f-pets", "Dog");
+await cust.fill("#f-notes", "Please skip the office.");
 await cust.click("#bookBtn");
 await cust.waitForSelector("text=You're booked, Pat!");
 assert.match(await cust.textContent(".done"), new RegExp("at " + pickedTime + " with Maria"), "confirmation shows the booked time");
@@ -84,6 +87,7 @@ assert.equal(await sameSlot.isDisabled(), true, "booked time is no longer offere
 // 4. Staff sees and confirms the online booking.
 await admin.click("[data-tab=overview]");
 await admin.waitForSelector(".panel.online:has-text('Pat Customer')");
+assert.match(await admin.textContent(".panel.online"), /Home: 3 bed \/ 2 bath · How often: Every 2 weeks · Pets: Dog\s*Please skip the office/);
 await admin.screenshot({ path: "/tmp/claude-0/-home-user-hockey-dashboards/fcf2d72e-4f9c-52c5-a302-1417875de0d9/scratchpad/shot-admin-online.png", fullPage: true });
 await admin.click("[data-act=accept-online]");
 await admin.waitForSelector(".panel.online", { state: "detached" });
@@ -133,6 +137,29 @@ assert.match(payText, /\$280\s*to cleaners \(80%\)/);
 assert.match(payText, /\$70\s*to the business/);
 assert.match(payText, /Maria Lopez\s*2\s*\$200/); // 150*0.8 + 200*0.8/2
 await admin.screenshot({ path: "/tmp/claude-0/-home-user/fcf2d72e-4f9c-52c5-a302-1417875de0d9/scratchpad/shot-pay.png", fullPage: true });
+
+// 5c. Payments: the finished jobs show as unpaid; recording one moves it to paid. Money tab and downloads.
+await admin.click("[data-tab=overview]");
+await admin.waitForFunction(() => document.querySelector("#main").textContent.replace(/\s+/g, " ").includes("Waiting for payment · $350"));
+await admin.waitForTimeout(800); // let the page settle after the test seeded data
+const patPrice = Number((await admin.textContent(".payrow:has-text('Pat Customer') .who")).match(/\$(\d+)/)[1]);
+const left = 350 - patPrice;
+await admin.click(".payrow:has-text('Pat Customer') [data-act=pay][data-method=etransfer]");
+await admin.waitForFunction(v => document.querySelector("#main").textContent.replace(/\s+/g, " ").includes("Waiting for payment · $" + v), left);
+await admin.click("[data-tab=money]");
+await admin.waitForSelector("text=Monthly revenue");
+const moneyText = (await admin.textContent("#main")).replace(/\s+/g, " ");
+assert.match(moneyText, /\$350\s*finished jobs \(2\)/, moneyText.slice(0, 300));
+assert.match(moneyText, /\$280\s*cleaner pay \(80%\)/);
+assert.match(moneyText, /\$70\s*business keeps/);
+assert.match(moneyText, new RegExp("\\$" + left + "\\s*still unpaid"));
+assert.match(moneyText, new RegExp("E-transfer\\s*\\$" + patPrice));
+const [dl] = await Promise.all([admin.waitForEvent("download"), admin.click("[data-act=csv-jobs]")]);
+const csv = readFileSync(await dl.path(), "utf8");
+assert.match(csv, /Date,Start,Client,Service,Price,Cleaners,Each cleaner gets,Business keeps,Payment,Paid on/);
+assert.match(csv, new RegExp(`Pat Customer,Standard clean,${patPrice}\\.00,.*,E-transfer,\\d{4}-`));
+assert.match(csv, /,150\.00,Maria Lopez,120\.00,30\.00,/); // solo job: 80% to Maria, 20% kept
+await admin.screenshot({ path: "/tmp/claude-0/-home-user/fcf2d72e-4f9c-52c5-a302-1417875de0d9/scratchpad/shot-money.png", fullPage: true });
 
 // 6. Owner gives access to a non-Google email; that person signs in with an emailed link.
 await admin.click("[data-tab=team]");

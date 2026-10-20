@@ -35,6 +35,7 @@
       maxDaysAhead: Number(s.maxDaysAhead) || 60,
       cleanerShare: Number.isFinite(Number(s.cleanerShare)) && s.cleanerShare !== "" && s.cleanerShare != null ? Number(s.cleanerShare) : 80,
       services,
+      faq: Array.isArray(s.faq) ? s.faq.filter(x => x && x.q) : [],
     };
   }
 

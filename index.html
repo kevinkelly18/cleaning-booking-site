@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kristally Klean · Book a Cleaning</title>
-<meta name="description" content="Pick a day, time and cleaner and book your home or office cleaning online.">
+<meta name="description" content="Pick a day, time and cleaner and book your home or office cleaning online with Kristally Klean.">
+<meta property="og:title" content="Kristally Klean · Book a Cleaning">
+<meta property="og:description" content="Pick a day, time and cleaner and book your cleaning online in under a minute.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="css/site.css">
@@ -37,6 +40,20 @@
   .done .check { width: 64px; height: 64px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: grid; place-items: center; font-size: 2rem; font-weight: 800; }
   .done .panel { text-align: left; width: 100%; }
   .done .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
+  @media (max-width: 700px) { .how { grid-template-columns: minmax(0, 1fr); } }
+  .how div { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; }
+  .how b { grid-row: span 2; width: 28px; height: 28px; border-radius: 50%; background: var(--lemon); color: var(--lemon-fg); display: grid; place-items: center; font-size: .85rem; }
+  .how strong { font-size: .95rem; }
+  .how span { font-size: .85rem; color: var(--muted); }
+  .svc .desc { color: var(--muted); font-size: .82rem; }
+  .info { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; padding-block: 8px 56px; align-items: start; }
+  @media (max-width: 860px) { .info { grid-template-columns: minmax(0, 1fr); } }
+  .faq details { border-bottom: 1px solid var(--line); padding: 12px 0; }
+  .faq summary { cursor: pointer; font-weight: 700; }
+  .faq p { margin-top: 8px; color: var(--muted); max-width: 65ch; }
+  .contact-card { display: grid; gap: 8px; }
+  .contact-card a { color: var(--accent); font-weight: 700; text-decoration: none; }
   footer { border-top: 1px solid var(--line); padding-block: 20px; font-size: .82rem; color: var(--muted); }
   footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
   footer a { color: var(--muted); }
@@ -53,8 +70,14 @@
     <div class="eyebrow" id="area"></div>
     <h1>Book your cleaning in <em>under a minute</em>.</h1>
     <p id="intro">Choose a service, pick a day and time that suits you, and choose your cleaner. You'll get a confirmation right away.</p>
+    <div class="how" aria-label="How it works">
+      <div><b>1</b><strong>Pick a time that suits you</strong><span>See real open times and choose your cleaner.</span></div>
+      <div><b>2</b><strong>We confirm by text</strong><span>We check the details and confirm your price.</span></div>
+      <div><b>3</b><strong>Come home to clean</strong><span>We bring the supplies. You pay after the job.</span></div>
+    </div>
   </section>
   <div id="app"><div class="empty">Loading open times…</div></div>
+  <section class="info" id="info" hidden></section>
 </main>
 
 <footer><div class="wrap"><span id="foot"></span><a href="admin.html">Staff sign-in</a></div></footer>
@@ -81,7 +104,7 @@
   const S = {
     cfg: A.settings(null), cleaners: [], taken: new Set(), holdsReady: false,
     month: null, service: null, date: null, start: null, cleaner: "any",
-    form: { name: "", phone: "", email: "", address: "", access: "", notes: "" }, busy: false, done: null,
+    form: { name: "", phone: "", email: "", address: "", access: "", notes: "", beds: "", baths: "", often: "One-time", pets: "No pets" }, busy: false, done: null,
   };
   const n0 = new Date(); S.month = new Date(n0.getFullYear(), n0.getMonth(), 1);
   const svc = () => S.cfg.services.find(s => s.name === S.service);
@@ -130,7 +153,7 @@
     <div class="steps" style="margin-bottom:26px">
       <div class="step"><h3><span class="n">1</span>What do you need?</h3>
         <div class="services">${S.cfg.services.map(x => `<button type="button" class="svc" data-act="svc" data-name="${esc(x.name)}" aria-pressed="${x.name === S.service}">
-          <strong>${esc(x.name)}</strong><span>About ${esc(x.hours)} hours</span>${x.from ? `<span>From <span class="price">${money(x.from)}</span></span>` : ""}</button>`).join("")}</div>
+          <strong>${esc(x.name)}</strong>${x.desc ? `<span class="desc">${esc(x.desc)}</span>` : ""}<span>About ${esc(x.hours)} hours</span>${x.from ? `<span>From <span class="price">${money(x.from)}</span></span>` : ""}</button>`).join("")}</div>
       </div>
     </div>
     <div class="booker">
@@ -165,8 +188,16 @@
             <div class="field"><label for="f-phone">Mobile phone</label><input id="f-phone" data-f="phone" type="tel" autocomplete="tel" value="${esc(f.phone)}" required maxlength="30"></div></div>
           <div class="grid2"><div class="field"><label for="f-email">Email (for your confirmation)</label><input id="f-email" data-f="email" type="email" autocomplete="email" value="${esc(f.email)}" maxlength="120"></div>
             <div class="field"><label for="f-address">Address to clean</label><input id="f-address" data-f="address" autocomplete="street-address" value="${esc(f.address)}" required maxlength="200"></div></div>
+          <div class="grid2">
+            <div class="field"><label for="f-beds">Bedrooms</label><select id="f-beds" data-f="beds"><option value="">Choose…</option>${["Studio", "1", "2", "3", "4", "5", "6+"].map(v => `<option ${v === f.beds ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+            <div class="field"><label for="f-baths">Bathrooms</label><select id="f-baths" data-f="baths"><option value="">Choose…</option>${["1", "1.5", "2", "2.5", "3", "4+"].map(v => `<option ${v === f.baths ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label for="f-often">How often?</label><select id="f-often" data-f="often">${["One-time", "Every week", "Every 2 weeks", "Every 4 weeks", "Not sure yet"].map(v => `<option ${v === f.often ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+            <div class="field"><label for="f-pets">Pets at home?</label><select id="f-pets" data-f="pets">${["No pets", "Dog", "Cat", "Dog and cat", "Other pets"].map(v => `<option ${v === f.pets ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+          </div>
           <div class="field"><label for="f-access">How do we get in? (optional)</label><input id="f-access" data-f="access" value="${esc(f.access)}" placeholder="I'll be home, lockbox, door code, pets" maxlength="300"></div>
-          <div class="field"><label for="f-notes">Anything we should know? (optional)</label><textarea id="f-notes" data-f="notes" maxlength="1000" placeholder="Rooms to focus on, products to avoid, parking">${esc(f.notes)}</textarea></div>
+          <div class="field"><label for="f-notes">Anything we should know? (optional)</label><textarea id="f-notes" data-f="notes" maxlength="800" placeholder="Rooms to focus on, products to avoid, parking">${esc(f.notes)}</textarea></div>
           <div><button class="btn primary big" type="submit" id="bookBtn" ${ready && !S.busy ? "" : "disabled"}>${S.busy ? "Booking…" : slot ? `Book ${esc(A.parseYmd(S.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }))} at ${esc(fmtTime(S.start))}` : "Pick a time to book"}</button></div>
           <p class="note">${s?.from ? `Estimate from ${money(s.from)}. Final price is confirmed by us before your visit.` : "We'll confirm your price before your visit."}</p>
         </form>
@@ -201,6 +232,30 @@
     window.scrollTo(0, 0);
   }
 
+  // Home details go at the top of the notes so staff see them with the booking.
+  function bookingNotes(f) {
+    const home = [f.beds && `${f.beds}${/^\d/.test(f.beds) ? " bed" : ""}`, f.baths && `${f.baths} bath`].filter(Boolean).join(" / ");
+    const head = [home && `Home: ${home}`, `How often: ${f.often}`, f.pets !== "No pets" && `Pets: ${f.pets}`].filter(Boolean).join(" · ");
+    return (head + (f.notes.trim() ? "\n" + f.notes.trim() : "")).slice(0, 1000);
+  }
+
+  function renderInfo() {
+    const c = S.cfg, box = $("#info");
+    const faq = c.faq.length ? c.faq : [
+      { q: "Do I need to provide cleaning supplies?", a: "No. We bring our own products and equipment. If you'd like us to use something specific, add it in the notes." },
+      { q: "Do I need to be home?", a: "No. Many clients leave a key or lockbox code. Add how we get in when you book." },
+      { q: "When do I pay?", a: "After the cleaning. We confirm your price before the visit." },
+      { q: "How do I change or cancel?", a: c.phone ? `Call or text us at ${c.phone}.` : "Reply to the confirmation text we send you." },
+    ];
+    box.innerHTML = `<div class="faq"><h2 style="margin-bottom:6px">Questions</h2>${faq.map(x => `<details><summary>${esc(x.q)}</summary><p>${esc(x.a)}</p></details>`).join("")}</div>
+      <div class="panel contact-card"><h3>Prefer to talk?</h3>
+        ${c.phone ? `<span>Call or text <a href="tel:${esc(c.phone.replace(/[^+\d]/g, ""))}">${esc(c.phone)}</a></span>` : ""}
+        ${c.email ? `<span>Email <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></span>` : ""}
+        ${c.area ? `<span class="note">Serving ${esc(c.area)}</span>` : ""}
+        ${!c.phone && !c.email ? `<span class="note">Book online above and we'll be in touch to confirm.</span>` : ""}</div>`;
+    box.hidden = false;
+  }
+
   async function book() {
     const s = svc(); if (!s || !S.date || S.start == null || S.busy) return;
     const date = S.date, start = S.start; // the live calendar can change while we save
@@ -219,7 +274,7 @@
       const batch = db.batch();
       batch.set(ref, {
         source: "online", status: "new", date: date, start: A.hm(start), startMin: start, duration: Number(s.hours), blockMins: blocks,
-        service: s.name, staff: [c.id], notes: f.notes.trim(), holds, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        service: s.name, staff: [c.id], notes: bookingNotes(f), holds, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         customer: { name: f.name.trim(), phone: f.phone.trim(), email: f.email.trim(), address: f.address.trim(), access: f.access.trim() },
       });
       holds.forEach((id, i) => batch.set(db.collection("holds").doc(id), { jobId: ref.id, cleanerId: c.id, date: date, t: start + i * A.HOLD }));
@@ -267,8 +322,8 @@
   Promise.all([db.doc("public/settings").get(), db.collection("publicCleaners").where("active", "==", true).get()]).then(([set, cl]) => {
     S.cfg = A.settings(set.exists ? set.data() : null);
     S.cleaners = cl.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name));
-    if (!S.cleaners.length) { renderHeader(); $("#app").innerHTML = `<div class="empty">Online booking isn't open yet.${S.cfg.phone ? ` Please call or text ${esc(S.cfg.phone)} to book.` : ""}</div>`; return; }
-    render(); watchHolds();
+    if (!S.cleaners.length) { renderHeader(); renderInfo(); $("#app").innerHTML = `<div class="empty">Online booking isn't open yet.${S.cfg.phone ? ` Please call or text ${esc(S.cfg.phone)} to book.` : ""}</div>`; return; }
+    render(); renderInfo(); watchHolds();
   }).catch(() => { $("#app").innerHTML = `<div class="banner bad">We couldn't load the booking calendar. Please refresh the page.</div>`; });
 })();
 </script>

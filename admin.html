@@ -226,6 +226,27 @@ html, body { margin: 0; }
 .panel.online .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .signin { max-width: 520px; margin: 40px auto; display: grid; gap: 14px; }
 .signin h2 { font-size: 1.5rem; }
+.jobwrap { display: grid; gap: 0; }
+.jobwrap .job { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; background: var(--sunk); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 8px 8px; }
+.quick .btn { padding: 4px 10px; font-size: .8rem; }
+a.btn { color: inherit; }
+.pill.paid { background: var(--ok-soft); color: var(--ok); }
+.pill.unpaid { background: var(--bad-soft); color: var(--bad); }
+.payrow { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.payrow:last-child { border-bottom: 0; }
+.payrow .who { font-weight: 700; }
+.payrow .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.bars { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; align-items: end; height: 180px; padding: 12px 4px 0; border-bottom: 1px solid var(--line); }
+.bar { position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; cursor: default; }
+.bar .fill { width: min(100%, 44px); background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; opacity: .45; }
+.bar.sel .fill { opacity: 1; }
+.bar .val { font-size: .75rem; font-weight: 700; margin-bottom: 4px; font-variant-numeric: tabular-nums; visibility: hidden; }
+.bar.sel .val, .bar:hover .val, .bar:focus .val { visibility: visible; }
+.bar .tip { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 6px 10px; border-radius: 6px; font-size: .78rem; white-space: nowrap; visibility: hidden; z-index: 2; }
+.bar:hover .tip, .bar:focus .tip { visibility: visible; }
+.barlabels { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; padding: 6px 4px 0; font-size: .75rem; color: var(--muted); text-align: center; }
+.money-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; align-items: start; }
 .staffrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 [hidden] { display: none !important; }
 </style>
@@ -243,6 +264,7 @@ html, body { margin: 0; }
       <button role="tab" data-tab="schedule" aria-selected="false" type="button">Schedule</button>
       <button role="tab" data-tab="clients" aria-selected="false" type="button">Clients</button>
       <button role="tab" data-tab="team" aria-selected="false" type="button">Team &amp; Time</button>
+      <button role="tab" data-tab="money" aria-selected="false" type="button">Money</button>
     </nav>
   </div>
 </header>
@@ -267,7 +289,7 @@ html, body { margin: 0; }
   let SERVICE_FROM = Object.fromEntries(A.DEFAULT_SERVICES.map(x => [x.name, x.from]));
   const S = {
     clients: [], employees: [], jobs: [], shifts: [], staffList: [], biz: null, me: null, role: null,
-    tab: "overview", week: mondayOf(new Date()), tsWeek: mondayOf(new Date()), q: "", bk: null,
+    tab: "overview", week: mondayOf(new Date()), tsWeek: mondayOf(new Date()), q: "", bk: null, moneyMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     db: null, canWrite: true, loaded: { clients: false, employees: false, jobs: false, shifts: false }
   };
   try { const t = localStorage.getItem("crewhq.tab"); if (t) S.tab = t; } catch (e) {}
@@ -374,8 +396,30 @@ html, body { margin: 0; }
       <div class="who">${esc(c?.name || "Unknown client")}</div>
       <div class="meta">${esc(j.service || "")}${j.status === "new" ? ` · <span class="pill new">Online · confirm</span>` : j.status && j.status !== "scheduled" ? ` · <span class="pill ${esc(j.status)}">${esc(j.status)}</span>` : ""}</div>
       ${c?.address ? `<div class="meta addr">${esc(c.address)}</div>` : ""}
-      <div class="chips">${staff}</div>
+      <div class="chips">${staff}${j.status === "done" ? (j.payment ? `<span class="pill paid">Paid · ${esc(PAY_LABEL[j.payment] || j.payment)}</span>` : `<span class="pill unpaid">Unpaid</span>`) : ""}</div>
     </button>`;
+  }
+
+  /* ---------- contact links & quick actions ---------- */
+  const PAY_LABEL = { cash: "Cash", etransfer: "E-transfer", card: "Card", cheque: "Cheque", other: "Other" };
+  const firstName = n => String(n || "").trim().split(/\s+/)[0] || "there";
+  const digitsOf = p => String(p || "").replace(/[^\d+]/g, "");
+  const telHref = p => "tel:" + digitsOf(p);
+  const smsHref = (p, body) => "sms:" + digitsOf(p) + "?&body=" + encodeURIComponent(body);
+  const mapsHref = a => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a);
+  function contactLinks(c, sms) {
+    if (!c) return "";
+    return [c.phone && sms ? `<a class="btn" href="${esc(smsHref(c.phone, sms))}">Text</a>` : "",
+      c.phone ? `<a class="btn" href="${esc(telHref(c.phone))}">Call</a>` : "",
+      c.address ? `<a class="btn" href="${esc(mapsHref(c.address))}" target="_blank" rel="noopener">Directions</a>` : ""].join("");
+  }
+  function jobWithActions(j) {
+    const c = jobClient(j), biz = bizCfg().name;
+    const onWay = `Hi ${firstName(c?.name)}, it's ${biz}. We're on our way and should be there soon!`;
+    return `<div class="jobwrap">${jobCard(j)}<div class="quick">
+      ${j.status === "scheduled" && S.canWrite ? `<button class="btn ok" data-act="job-done" data-id="${esc(j.id)}" type="button">Mark done</button>` : ""}
+      ${j.status === "done" && !j.payment && S.canWrite ? `<button class="btn" data-act="pay-pick" data-id="${esc(j.id)}" type="button">Record payment</button>` : ""}
+      ${contactLinks(c, onWay)}</div></div>`;
   }
 
   function exampleBanner() { return ""; }
@@ -422,6 +466,32 @@ html, body { margin: 0; }
       }).join("")}</div></section>`;
   }
 
+  function remindersPanel() {
+    const tmr = ymd(addDays(new Date(), 1));
+    const jobs = S.jobs.filter(j => j.date === tmr && j.status === "scheduled").sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+    if (!jobs.length) return "";
+    const biz = bizCfg().name;
+    return `<div class="section-head"><div><div class="eyebrow">Tomorrow · ${esc(fmtDay(parseYmd(tmr)))}</div><h2>Send reminders</h2></div></div>
+      <div class="panel" style="margin-bottom:24px">${jobs.map(j => {
+        const c = jobClient(j);
+        const msg = `Hi ${firstName(c?.name)}, this is ${biz} reminding you of your ${String(j.service || "cleaning").toLowerCase()} tomorrow (${fmtDay(parseYmd(j.date))}) at ${fmtTime(j.start)}. Reply here if anything changes. Thank you!`;
+        return `<div class="payrow"><div><div class="who">${esc(c?.name || "Client")}</div><div class="note">${esc(fmtTime(j.start))} · ${esc(j.service || "")}${j.remindedAt ? " · ✓ reminded" : ""}</div></div>
+          <div class="actions">${c?.phone ? `<a class="btn small ${j.remindedAt ? "" : "primary"}" data-act="remind" data-id="${esc(j.id)}" href="${esc(smsHref(c.phone, msg))}">${j.remindedAt ? "Text again" : "Text reminder"}</a>` : `<span class="note">No phone on file</span>`}</div></div>`;
+      }).join("")}</div>`;
+  }
+
+  function unpaidPanel() {
+    const jobs = S.jobs.filter(j => j.status === "done" && !j.payment).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    if (!jobs.length) return "";
+    const owed = jobs.reduce((a, j) => a + (Number(j.price) || 0), 0);
+    return `<div class="section-head"><div><div class="eyebrow">Finished, not paid yet</div><h2>Waiting for payment · ${money(owed)}</h2></div></div>
+      <div class="panel" style="margin-bottom:24px">${jobs.slice(0, 12).map(j => {
+        const c = jobClient(j);
+        return `<div class="payrow"><div><div class="who">${esc(c?.name || "Client")} · ${money(j.price)}</div><div class="note">${esc(fmtDay(parseYmd(j.date)))} · ${esc(j.service || "")}</div></div>
+          <div class="actions">${S.canWrite ? ["cash", "etransfer", "card"].map(m => `<button class="btn small" data-act="pay" data-method="${m}" data-id="${esc(j.id)}" type="button">${PAY_LABEL[m]}</button>`).join("") : ""}</div></div>`;
+      }).join("")}${jobs.length > 12 ? `<p class="note">${jobs.length - 12} more in the Money tab.</p>` : ""}</div>`;
+  }
+
   function viewOverview() {
     const now = new Date(), today = ymd(now);
     const wk0 = mondayOf(now), wk1 = addDays(wk0, 7);
@@ -449,11 +519,13 @@ html, body { margin: 0; }
     <div class="two">
       <section>
         <div class="section-head"><h2>Today's jobs</h2></div>
-        <div class="list">${todayJobs.length ? todayJobs.map(j => jobCard(j)).join("") : `<div class="empty">Nothing booked for today.</div>`}</div>
+        <div class="list">${todayJobs.length ? todayJobs.map(j => jobWithActions(j)).join("") : `<div class="empty">Nothing booked for today.</div>`}</div>
         <div class="section-head" style="margin-top:24px"><h2>Coming up</h2></div>
         <div class="list">${upcoming.length ? upcoming.map(j => jobCard(j, { showDate: true })).join("") : `<div class="empty">No upcoming jobs yet. Book one with the button above.</div>`}</div>
       </section>
       <section>
+        ${remindersPanel()}
+        ${unpaidPanel()}
         <div class="section-head"><h2>On the clock</h2><button class="link" data-tab-go="team" type="button">Team &amp; Time →</button></div>
         <div class="list">${onClock.length ? onClock.map(s => `<div class="panel emp"><div class="top-row"><h3>${esc(empName(s.employeeId))}</h3><span class="pill on">Working</span></div><div class="since">In at ${esc(fmtClock(new Date(s.in)))} · ${hrs(shiftHours(s))} h so far</div></div>`).join("") : `<div class="empty">No one is clocked in.</div>`}</div>
       </section>
@@ -616,6 +688,74 @@ html, body { margin: 0; }
       : `<div class="empty">No finished jobs this week yet. Pay is worked out from jobs marked <strong>Done</strong>.</div>`}`;
   }
 
+  function monthStats(m0) {
+    const m1 = new Date(m0.getFullYear(), m0.getMonth() + 1, 1);
+    const share = bizCfg().cleanerShare / 100;
+    const done = S.jobs.filter(j => j.status === "done" && (d => d >= m0 && d < m1)(parseYmd(j.date))).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    const st = { done, revenue: 0, payouts: 0, collected: 0, byService: new Map(), byCleaner: new Map(), byMethod: new Map(), share };
+    for (const j of done) {
+      const price = Number(j.price) || 0, staff = j.staff || [], each = staff.length ? price * share / staff.length : 0;
+      st.revenue += price; st.payouts += each * staff.length;
+      if (j.payment) { st.collected += price; st.byMethod.set(j.payment, (st.byMethod.get(j.payment) || 0) + price); }
+      const sv = st.byService.get(j.service || "Other") || { n: 0, amt: 0 }; sv.n++; sv.amt += price; st.byService.set(j.service || "Other", sv);
+      for (const id of staff) { const p = st.byCleaner.get(id) || { n: 0, amt: 0 }; p.n++; p.amt += each; st.byCleaner.set(id, p); }
+    }
+    return st;
+  }
+
+  function viewMoney() {
+    const m0 = S.moneyMonth, st = monthStats(m0), pct = Math.round(st.share * 100);
+    const label = d => d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    const months = [...Array(6)].map((_, i) => new Date(m0.getFullYear(), m0.getMonth() - 5 + i, 1));
+    const series = months.map(d => ({ d, s: monthStats(d) }));
+    const max = Math.max(1, ...series.map(x => x.s.revenue));
+    const upcoming = S.jobs.filter(j => j.status === "scheduled" && (d => d >= m0 && d < new Date(m0.getFullYear(), m0.getMonth() + 1, 1))(parseYmd(j.date))).reduce((a, j) => a + (Number(j.price) || 0), 0);
+    const tbl = (head, rows) => rows ? `<div class="tablewrap"><table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="empty">Nothing yet.</div>`;
+    return `<section>
+      <div class="section-head">
+        <div><div class="eyebrow">Money</div><h2>${esc(label(m0))}</h2></div>
+        <div class="weeknav"><button class="btn small" data-act="mmonth" data-d="-1" type="button" aria-label="Previous month">←</button>
+          <button class="btn small" data-act="mmonth" data-d="0" type="button">This month</button>
+          <button class="btn small" data-act="mmonth" data-d="1" type="button" aria-label="Next month">→</button></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="v">${money(st.revenue)}</div><div class="l">finished jobs (${st.done.length})</div></div>
+        <div class="stat"><div class="v">${money(st.payouts)}</div><div class="l">cleaner pay (${pct}%)</div></div>
+        <div class="stat"><div class="v">${money(st.revenue - st.payouts)}</div><div class="l">business keeps</div></div>
+        <div class="stat"><div class="v">${money(st.revenue - st.collected)}</div><div class="l">still unpaid</div></div>
+      </div>
+      ${upcoming ? `<p class="note" style="margin-top:8px">Plus ${money(upcoming)} of jobs still scheduled this month.</p>` : ""}
+    </section>
+    <section class="panel">
+      <div class="section-head" style="margin-bottom:4px"><div><div class="eyebrow">Finished jobs, last 6 months</div><h2 style="font-size:1.05rem">Monthly revenue</h2></div></div>
+      <div class="bars" role="img" aria-label="Monthly revenue for the last six months">${series.map(x => `<div class="bar ${x.d.getTime() === m0.getTime() ? "sel" : ""}" tabindex="0">
+        <span class="tip">${esc(label(x.d))}: ${money(x.s.revenue)} · ${x.s.done.length} jobs · business ${money(x.s.revenue - x.s.payouts)}</span>
+        <span class="val">${money(x.s.revenue)}</span><span class="fill" style="height:${(x.s.revenue / max * 100).toFixed(1)}%"></span></div>`).join("")}</div>
+      <div class="barlabels">${series.map(x => `<span>${esc(x.d.toLocaleDateString(undefined, { month: "short" }))}</span>`).join("")}</div>
+    </section>
+    <div class="money-grid">
+      <section><h3 style="margin-bottom:8px">Cleaner pay</h3>
+        ${tbl(["Cleaner", "Jobs", "Pay"], [...st.byCleaner.entries()].sort((a, b) => b[1].amt - a[1].amt).map(([id, p]) => `<tr><td>${esc(empName(id))}</td><td>${p.n}</td><td><strong>${money(p.amt)}</strong></td></tr>`).join(""))}</section>
+      <section><h3 style="margin-bottom:8px">By service</h3>
+        ${tbl(["Service", "Jobs", "Revenue"], [...st.byService.entries()].sort((a, b) => b[1].amt - a[1].amt).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.n}</td><td>${money(v.amt)}</td></tr>`).join(""))}</section>
+      <section><h3 style="margin-bottom:8px">Payments received</h3>
+        ${tbl(["Method", "Amount"], [...st.byMethod.entries()].map(([k, v]) => `<tr><td>${esc(PAY_LABEL[k] || k)}</td><td>${money(v)}</td></tr>`).join("") + (st.revenue - st.collected ? `<tr><td>Unpaid</td><td>${money(st.revenue - st.collected)}</td></tr>` : ""))}</section>
+    </div>
+    <section>
+      <div class="section-head"><h3>Every finished job</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" data-act="csv-jobs" type="button">Download jobs (spreadsheet)</button><button class="btn small" data-act="csv-pay" type="button">Download cleaner pay</button></div></div>
+      ${tbl(["Day", "Client", "Service", "Price", "Cleaners", "Payment"], st.done.map(j => `<tr class="click" data-act="edit-job" data-id="${esc(j.id)}" tabindex="0"><td>${esc(fmtDay(parseYmd(j.date)))}</td><td style="text-align:left">${esc(jobClient(j)?.name || "")}</td><td style="text-align:left">${esc(j.service || "")}</td><td>${money(j.price)}</td><td style="text-align:left">${(j.staff || []).map(id => esc(empName(id))).join(", ") || "–"}</td><td>${j.payment ? esc(PAY_LABEL[j.payment] || j.payment) : `<span class="pill unpaid">Unpaid</span>`}</td></tr>`).join(""))}
+      <p class="note" style="margin-top:8px">Only jobs marked <strong>Done</strong> count. Downloads open in Excel, Numbers or Google Sheets.</p>
+    </section>`;
+  }
+
+  function downloadCsv(name, rows) {
+    const cell = v => { const t = String(v ?? ""); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+    const blob = new Blob(["\ufeff" + rows.map(r => r.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+
   function bookingMessage(job, client, cleaner) {
     const first = (client.name || "").replace(/^Example:\s*/, "").split(" ")[0];
     const biz = S.biz?.name || "our team";
@@ -705,7 +845,7 @@ html, body { margin: 0; }
     if (!S.db) return;
     if (!Object.values(S.loaded).every(Boolean)) return;
     const act = document.activeElement, focusId = act && act.id && act.matches("input, textarea") ? act.id : null;
-    const html = S.tab === "book" ? viewBook() : S.tab === "schedule" ? viewSchedule() : S.tab === "clients" ? viewClients() : S.tab === "team" ? viewTeam() : viewOverview();
+    const html = S.tab === "money" ? viewMoney() : S.tab === "book" ? viewBook() : S.tab === "schedule" ? viewSchedule() : S.tab === "clients" ? viewClients() : S.tab === "team" ? viewTeam() : viewOverview();
     $("#main").innerHTML = html;
     if (focusId) { const i = document.getElementById(focusId); if (i) { i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch (e) {} } }
   }
@@ -756,6 +896,8 @@ html, body { margin: 0; }
       ${isNew ? `<div class="grid2">${field("Repeat", `<select name="repeat" id="f-repeat"><option value="0">Does not repeat</option><option value="7">Every week</option><option value="14">Every 2 weeks</option><option value="28">Every 4 weeks</option><option value="m">Monthly (same date)</option></select>`)}
         ${field("Number of visits", `<input type="number" name="count" id="f-count" value="8" min="1" max="52">`)}</div>`
       : field("Status", `<select name="status" id="f-status">${[["new", "New online booking (not confirmed)"], ["scheduled", "Scheduled"], ["done", "Done"], ["cancelled", "Cancelled"]].filter(([v]) => v !== "new" || job.status === "new").map(([v, l]) => `<option value="${v}" ${v === job.status ? "selected" : ""}>${l}</option>`).join("")}</select>`)}
+      ${isNew ? "" : field("Payment", `<select name="payment" id="f-payment"><option value="">Not paid yet</option>${Object.entries(PAY_LABEL).map(([v, l]) => `<option value="${v}" ${v === job.payment ? "selected" : ""}>Paid · ${l}</option>`).join("")}</select>`)}
+      ${!isNew && c ? `<div class="quick" style="border-radius:8px;border:1px solid var(--line)">${contactLinks(c, `Hi ${firstName(c.name)}, `)}</div>` : ""}
       ${field("Job notes", `<textarea name="notes" id="f-notes" placeholder="Supplies to bring, rooms to skip, special requests">${esc(job.notes || "")}</textarea>`)}
     `, async fd => {
       let clientId = fd.get("clientId");
@@ -769,7 +911,11 @@ html, body { margin: 0; }
         staff: fd.getAll("staff"), notes: fd.get("notes").trim(), status: isNew ? "scheduled" : fd.get("status"),
         updatedAt: new Date().toISOString()
       };
-      if (!isNew) { await guard(writeJob(job.id, { ...stripId(job), ...body, createdAt: job.createdAt || body.updatedAt }, job), "Job saved"); return; }
+      if (!isNew) {
+        const payment = fd.get("payment") || "";
+        body.payment = payment; body.paidAt = payment ? (job.payment === payment && job.paidAt ? job.paidAt : body.updatedAt) : "";
+        await guard(writeJob(job.id, { ...stripId(job), ...body, createdAt: job.createdAt || body.updatedAt }, job), "Job saved"); return;
+      }
       const rep = fd.get("repeat"), count = rep === "0" ? 1 : Math.min(52, Math.max(1, Number(fd.get("count")) || 1));
       const start = parseYmd(body.date);
       const series = count > 1 ? "s" + Date.now().toString(36) : undefined;
@@ -875,6 +1021,16 @@ html, body { margin: 0; }
     }
     if (act === "week") { S.week = el.dataset.d === "0" ? mondayOf(new Date()) : addDays(S.week, Number(el.dataset.d)); return render(); }
     if (act === "tsweek") { S.tsWeek = el.dataset.d === "0" ? mondayOf(new Date()) : addDays(S.tsWeek, Number(el.dataset.d)); return render(); }
+    if (act === "mmonth") { const m = S.moneyMonth, d = Number(el.dataset.d); S.moneyMonth = d ? new Date(m.getFullYear(), m.getMonth() + d, 1) : new Date(new Date().getFullYear(), new Date().getMonth(), 1); return render(); }
+    if (act === "remind" && S.db && S.canWrite) { S.db.doc("jobs/" + id).update({ remindedAt: new Date().toISOString() }).catch(() => {}); return; }
+    if (act === "csv-jobs" || act === "csv-pay") {
+      const st = monthStats(S.moneyMonth), tag = ymd(S.moneyMonth).slice(0, 7);
+      if (act === "csv-jobs") downloadCsv(`jobs-${tag}.csv`, [["Date", "Start", "Client", "Service", "Price", "Cleaners", "Each cleaner gets", "Business keeps", "Payment", "Paid on"],
+        ...st.done.map(j => { const p = Number(j.price) || 0, n = (j.staff || []).length, each = n ? p * st.share / n : 0;
+          return [j.date, j.start, jobClient(j)?.name || "", j.service || "", p.toFixed(2), (j.staff || []).map(empName).join(" & "), each.toFixed(2), (p - each * n).toFixed(2), PAY_LABEL[j.payment] || "Unpaid", j.paidAt ? j.paidAt.slice(0, 10) : ""]; })]);
+      else downloadCsv(`cleaner-pay-${tag}.csv`, [["Cleaner", "Jobs done", "Pay"], ...[...st.byCleaner.entries()].map(([id, p]) => [empName(id), p.n, p.amt.toFixed(2)])]);
+      return;
+    }
     if (act === "bk-month") { const m = S.bk.month; S.bk.month = new Date(m.getFullYear(), m.getMonth() + Number(el.dataset.d), 1); return render(); }
     if (act === "bk-day") { S.bk.date = el.dataset.date; S.bk.start = null; return render(); }
     if (act === "bk-slot") { S.bk.start = Number(el.dataset.t); return render(); }
@@ -884,6 +1040,9 @@ html, body { margin: 0; }
     if (act === "edit-job") { const j = byId(S.jobs, id); if (j && S.canWrite) openJob(j); return; }
     if (!S.canWrite) return;
     if (act === "new-job") return openJob(null, el.dataset.date);
+    if (act === "job-done") { el.disabled = true; await guard(S.db.doc("jobs/" + id).update({ status: "done", updatedAt: new Date().toISOString() }), "Marked done"); return; }
+    if (act === "pay") { el.disabled = true; await guard(S.db.doc("jobs/" + id).update({ payment: el.dataset.method, paidAt: new Date().toISOString() }), `Recorded: paid by ${PAY_LABEL[el.dataset.method]}`); return; }
+    if (act === "pay-pick") { const j = byId(S.jobs, id); if (j) openJob(j); return; }
     if (act === "new-client") return openClient();
     if (act === "edit-client") return openClient(byId(S.clients, id));
     if (act === "new-emp") return openEmp();
@@ -894,7 +1053,8 @@ html, body { margin: 0; }
     if (act === "clock-out") { el.disabled = true; const s = byId(S.shifts, id); await guard(S.db.doc("shifts/" + id).update({ out: new Date().toISOString() }), `${empName(s?.employeeId)} clocked out · ${hrs(shiftHours(s || { in: new Date().toISOString() }))} h`); return; }
     if (act === "rename") {
       const cfg = bizCfg();
-      const svcText = cfg.services.map(x => `${x.name} | ${x.hours} | ${x.from || ""}`).join("\n");
+      const svcText = cfg.services.map(x => [x.name, x.hours, x.from || "", x.desc || ""].join(" | ").replace(/[ |]+$/, "")).join("\n");
+      const faqText = cfg.faq.map(x => `${x.q} | ${x.a}`).join("\n");
       openDialog("Business settings", `${field("Business name", `<input name="name" id="b-name" value="${esc(cfg.name)}" placeholder="e.g. Sparkle & Shine Cleaning">`)}
         <div class="grid2">${field("Phone shown to customers", `<input name="phone" id="b-phone" type="tel" value="${esc(cfg.phone)}">`)}${field("Email shown to customers", `<input name="email" id="b-email" type="email" value="${esc(cfg.email)}">`)}</div>
         ${field("Area you serve", `<input name="area" id="b-area" value="${esc(cfg.area)}" placeholder="e.g. Springfield and nearby towns">`)}
@@ -905,14 +1065,17 @@ html, body { margin: 0; }
         <div class="grid2">${field("Online bookings need at least", `<select name="minNoticeHours" id="b-notice">${[2, 4, 12, 24, 48, 72].map(h => `<option value="${h}" ${h === cfg.minNoticeHours ? "selected" : ""}>${h} hours notice</option>`).join("")}</select>`)}
         ${field("Customers can book up to", `<select name="maxDaysAhead" id="b-ahead">${[14, 30, 60, 90, 180].map(d => `<option value="${d}" ${d === cfg.maxDaysAhead ? "selected" : ""}>${d} days ahead</option>`).join("")}</select>`)}</div>
         ${field("Cleaner's share of each job (%)", `<input name="cleanerShare" id="b-share" type="number" min="0" max="100" step="1" value="${esc(cfg.cleanerShare)}">`)}
-        ${field("Services (one per line: name | hours | starting price)", `<textarea name="services" id="b-services" rows="6" style="font-family:var(--f-mono);font-size:.85rem">${esc(svcText)}</textarea>`)}`, async fd => {
+        ${field("Services (one per line: name | hours | starting price | short description)", `<textarea name="services" id="b-services" rows="6" style="font-family:var(--f-mono);font-size:.85rem">${esc(svcText)}</textarea>`)}
+        ${field("Questions customers ask (one per line: question | answer)", `<textarea name="faq" id="b-faq" rows="5" style="font-family:var(--f-mono);font-size:.85rem" placeholder="Do I need to supply products? | No, we bring everything we need.">${esc(faqText)}</textarea>`)}`, async fd => {
         if (mins(fd.get("close")) <= mins(fd.get("open"))) return "The end of the day must be later than the start.";
         const services = fd.get("services").split("\n").map(l => l.split("|").map(x => x.trim())).filter(p => p[0])
-          .map(([name, hours, from]) => ({ name: name.slice(0, 80), hours: Math.min(10, Math.max(0.5, Number(hours) || 2)), from: Number(String(from || "").replace(/[^\d.]/g, "")) || 0 }));
+          .map(([name, hours, from, ...desc]) => ({ name: name.slice(0, 80), hours: Math.min(10, Math.max(0.5, Number(hours) || 2)), from: Number(String(from || "").replace(/[^\d.]/g, "")) || 0, desc: desc.join("|").trim().slice(0, 200) }));
+        const faq = fd.get("faq").split("\n").map(l => l.split("|")).filter(p => p[0].trim() && p.length > 1)
+          .map(([q, ...a]) => ({ q: q.trim().slice(0, 200), a: a.join("|").trim().slice(0, 600) }));
         if (!services.length) return "Add at least one service.";
         await guard(S.db.doc("public/settings").set({ name: fd.get("name").trim(), phone: fd.get("phone").trim(), email: fd.get("email").trim(), area: fd.get("area").trim(), intro: fd.get("intro").trim(),
           open: fd.get("open"), close: fd.get("close"), buffer: Number(fd.get("buffer")), step: Number(fd.get("step")),
-          minNoticeHours: Number(fd.get("minNoticeHours")), maxDaysAhead: Number(fd.get("maxDaysAhead")), cleanerShare: Math.min(100, Math.max(0, Number(fd.get("cleanerShare")) || 0)), services }), "Settings saved");
+          minNoticeHours: Number(fd.get("minNoticeHours")), maxDaysAhead: Number(fd.get("maxDaysAhead")), cleanerShare: Math.min(100, Math.max(0, Number(fd.get("cleanerShare")) || 0)), services, faq }), "Settings saved");
       });
       return;
     }
