@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Bookings · Kristally Klean</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<style>
+  header.site { background: var(--surface); border-bottom: 1px solid var(--line); }
+  header.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding-block: 14px; }
+  header.site .name { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; text-decoration: none; color: var(--fg); }
+  header.site nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .9rem; }
+  main { padding-block: 28px 64px; display: grid; gap: 24px; max-width: 760px; }
+  .signin { display: grid; gap: 14px; }
+  .bk { display: grid; gap: 8px; }
+  .bk .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .bk h3 { font-size: 1.1rem; }
+  .bk .when { font-family: var(--f-mono); font-size: .85rem; color: var(--muted); }
+  .bk .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 3px 9px; border-radius: 999px; }
+  .pill.new { background: var(--warn-soft); color: var(--warn); }
+  .pill.scheduled { background: var(--ok-soft); color: var(--ok); }
+  .pill.done { background: var(--sunk); color: var(--muted); }
+  .pill.cancelled { background: var(--sunk); color: var(--muted); }
+  .asked { background: var(--accent-soft); border-radius: 8px; padding: 8px 12px; font-size: .9rem; }
+  .list { display: grid; gap: 12px; }
+  .past { display: grid; gap: 0; }
+  .past div { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: .92rem; }
+  .past div:last-child { border-bottom: 0; }
+</style>
+</head>
+<body>
+<header class="site"><div class="wrap">
+  <a class="name" id="bizName" href="./">Kristally Klean</a>
+  <nav><a class="btn small" href="./">Book a cleaning</a><span id="me" class="note"></span><button class="btn small" id="signOut" type="button" hidden>Sign out</button></nav>
+</div></header>
+<main class="wrap" id="main"><div class="empty">Loading…</div></main>
+<div id="toast" hidden></div>
+
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-auth-compat.js"></script>
+<script src="vendor/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/availability.js"></script>
+<script src="js/auth.js"></script>
+<script>
+(() => {
+  const A = window.Avail;
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmtTime = hm => { if (!hm) return ""; const [h, m] = hm.split(":").map(Number); return ((h % 12) || 12) + ":" + A.pad(m) + (h < 12 ? " am" : " pm"); };
+  const longDay = ds => A.parseYmd(ds).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  let toastT; const toast = m => { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3500); };
+  const show = html => { $("#main").innerHTML = html; };
+
+  const fb = window.startFirebase();
+  if (!fb) { show(`<div class="banner info">This page isn't connected yet.</div>`); return; }
+  const db = fb.db, auth = firebase.auth();
+  const S = { cfg: A.settings(null), names: {}, jobs: [], email: "", asking: null };
+
+  db.doc("public/settings").get().then(x => { S.cfg = A.settings(x.exists ? x.data() : null); $("#bizName").textContent = S.cfg.name; document.title = `My Bookings · ${S.cfg.name}`; render(); }).catch(() => {});
+  db.collection("publicCleaners").get().then(q => { q.docs.forEach(d => S.names[d.id] = d.data().name); render(); }).catch(() => {});
+
+  const signIn = SignIn.setup({ auth, show, toast, title: "See your bookings",
+    intro: "Enter the email you used when you booked. We'll email you a link to sign in, no password needed.", linkFirst: true, google: true });
+  $("#signOut").addEventListener("click", () => auth.signOut().then(() => location.reload()));
+
+  let unsub = null;
+  auth.onAuthStateChanged(u => {
+    unsub?.();
+    if (!u) {
+      $("#me").textContent = ""; $("#signOut").hidden = true;
+      if (signIn.pending) { signIn.pending = false; return; }
+      signIn.show(); return;
+    }
+    S.email = (u.email || "").toLowerCase();
+    $("#me").textContent = S.email; $("#signOut").hidden = false;
+    if (!u.emailVerified) { signIn.needsVerify(S.email); return; }
+    show(`<div class="empty">Loading your bookings…</div>`);
+    unsub = db.collection("jobs").where("clientEmail", "==", S.email).onSnapshot(snap => {
+      S.jobs = snap.docs.map(d => ({ id: d.id, ...d.data() })); S.loaded = true; render();
+    }, () => show(`<div class="banner bad">We couldn't load your bookings. Please refresh the page.</div>`));
+  });
+
+  const STATUS = { new: "Waiting for us to confirm", scheduled: "Confirmed", done: "Done", cancelled: "Cancelled" };
+  const cleanerNames = j => (j.staff || []).map(id => S.names[id]).filter(Boolean).join(" & ");
+
+  function render() {
+    if (!S.loaded) return;
+    const today = A.ymd(new Date());
+    const upcoming = S.jobs.filter(j => j.date >= today && (j.status === "new" || j.status === "scheduled")).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    const past = S.jobs.filter(j => !upcoming.includes(j)).sort((a, b) => (b.date + b.start).localeCompare(a.date + a.start)).slice(0, 12);
+    const phone = S.cfg.phone;
+    show(`<section><div class="eyebrow">Signed in as ${esc(S.email)}</div><h1 style="font-size:1.7rem">Your bookings</h1></section>
+      <section class="list">${upcoming.length ? upcoming.map(card).join("") : `<div class="empty">No upcoming cleanings.<br><br><a class="btn primary" href="./">Book a cleaning</a></div>`}</section>
+      ${past.length ? `<section><h2 style="font-size:1.1rem;margin-bottom:6px">Past and cancelled</h2><div class="panel past">${past.map(j => `<div><span>${esc(A.parseYmd(j.date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }))} · ${esc(j.service || "Cleaning")}</span><span class="pill ${esc(j.status)}">${esc(STATUS[j.status] || j.status)}</span></div>`).join("")}</div></section>` : ""}
+      <p class="note">Don't see a booking? Make sure you signed in with the same email you booked with${phone ? `, or call or text ${esc(phone)}` : ""}.</p>`);
+  }
+
+  function card(j) {
+    const r = j.request, asking = S.asking?.id === j.id ? S.asking.type : null;
+    const cl = cleanerNames(j);
+    return `<article class="panel bk">
+      <div class="top"><h3>${esc(longDay(j.date))}</h3><span class="pill ${esc(j.status)}">${esc(STATUS[j.status] || j.status)}</span></div>
+      <div class="when">${esc(fmtTime(j.start))} · about ${esc(j.duration)} hours</div>
+      <div>${esc(j.service || "Cleaning")}${cl ? ` with ${esc(cl)}` : ""}</div>
+      ${j.site?.address || j.customer?.address ? `<div class="note">${esc(j.site?.address || j.customer?.address)}</div>` : ""}
+      ${r ? `<div class="asked">You asked to <strong>${r.type === "cancel" ? "cancel" : "change"}</strong> this booking${r.note ? `: “${esc(r.note)}”` : ""}. We'll be in touch to confirm.</div>`
+        : asking ? `<form class="field" data-req="${esc(j.id)}" data-type="${asking}" novalidate style="gap:8px">
+            <label for="req-note">${asking === "cancel" ? "Anything you'd like us to know? (optional)" : "What would you like to change? A new day or time works best."}</label>
+            <textarea id="req-note" maxlength="500" ${asking === "change" ? "required" : ""}></textarea>
+            <div class="actions"><button class="btn primary" type="submit">${asking === "cancel" ? "Send cancellation request" : "Send change request"}</button><button class="btn" data-ask="" type="button">Never mind</button></div>
+          </form>`
+        : `<div class="actions"><button class="btn small" data-ask="change" data-id="${esc(j.id)}" type="button">Ask to change</button><button class="btn small danger" data-ask="cancel" data-id="${esc(j.id)}" type="button">Ask to cancel</button></div>`}
+    </article>`;
+  }
+
+  document.addEventListener("click", ev => {
+    const b = ev.target.closest("[data-ask]"); if (!b) return;
+    S.asking = b.dataset.ask ? { id: b.dataset.id, type: b.dataset.ask } : null; render();
+    $("#req-note")?.focus();
+  });
+  document.addEventListener("submit", async ev => {
+    const f = ev.target.closest("[data-req]"); if (!f) return;
+    ev.preventDefault();
+    const note = $("#req-note").value.trim();
+    if (f.dataset.type === "change" && !note) { toast("Tell us what you'd like to change."); return; }
+    f.querySelector("button[type=submit]").disabled = true;
+    try {
+      await db.doc("jobs/" + f.dataset.req).update({ request: { type: f.dataset.type, note, at: firebase.firestore.FieldValue.serverTimestamp() } });
+      S.asking = null; toast("Sent. We'll be in touch to confirm."); render();
+    } catch (e) { f.querySelector("button[type=submit]").disabled = false; toast("That didn't send. Check your connection and try again."); }
+  });
+})();
+</script>
+</body>
+</html>

@@ -87,3 +87,5 @@ p { margin: 0; }
 .step > h3 .n { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: inline-grid; place-items: center; font-size: .82rem; font-family: var(--f-body); flex: none; }
 .picked { font-size: .9rem; background: var(--sunk); border-radius: 8px; padding: 8px 12px; }
 @media (prefers-reduced-motion: no-preference) { .btn, .slot, .cal-day { transition: border-color .15s, background .15s, box-shadow .15s; } }
+a.btn { color: var(--fg); }
+a.btn.primary { color: var(--accent-fg); }

@@ -360,6 +360,24 @@ a.btn { color: inherit; }
 
   /* ---------- writes that keep time blocks in sync ---------- */
   // Every job reserves 15-minute blocks ("holds") for each assigned cleaner, so the customer site can't double-book.
+  // Cleaners can't open the client list, and customers see only jobs with their email,
+  // so each job carries a copy of what they need. Kept in sync when the client changes.
+  function siteFields(job) {
+    const c = byId(S.clients, job.clientId);
+    if (!c) return job.customer ? { clientEmail: String(job.customer.email || "").toLowerCase() } : {};
+    return { site: { name: c.name || "", phone: c.phone || "", address: c.address || "", access: c.access || "" }, clientEmail: String(c.email || "").toLowerCase() };
+  }
+  const sameSite = (j, f) => JSON.stringify(j.site || null) === JSON.stringify(f.site || null) && (j.clientEmail || "") === (f.clientEmail || "");
+  async function syncSites(jobs) {
+    const stale = jobs.map(j => [j, siteFields(j)]).filter(([j, f]) => f.site && !sameSite(j, f));
+    for (let i = 0; i < stale.length; i += 400) {
+      const batch = S.db.batch();
+      stale.slice(i, i + 400).forEach(([j, f]) => batch.update(S.db.doc("jobs/" + j.id), f));
+      await batch.commit();
+    }
+    return stale.length;
+  }
+
   async function writeJob(id, body, prev) {
     const cfg = bizCfg();
     const ref = id ? S.db.doc("jobs/" + id) : S.db.collection("jobs").doc();
@@ -373,7 +391,7 @@ a.btn { color: inherit; }
     const owned = want.filter(w => !clashes.has(w.hid));
     const ownedIds = new Set(owned.map(w => w.hid));
     const batch = S.db.batch();
-    batch.set(ref, { ...body, startMin, blockMins: blocks, holds: [...ownedIds] });
+    batch.set(ref, { ...body, ...siteFields(body), startMin, blockMins: blocks, holds: [...ownedIds] });
     owned.filter(w => !had.has(w.hid)).forEach(w => batch.set(S.db.doc("holds/" + w.hid), w.data));
     [...had].filter(h => !ownedIds.has(h)).forEach(h => batch.delete(S.db.doc("holds/" + h)));
     await batch.commit();
@@ -440,9 +458,9 @@ a.btn { color: inherit; }
     if (S.role !== "owner") return "";
     return `<section>
       <div class="section-head"><div><div class="eyebrow">Who can sign in here</div><h2>Staff access</h2></div><button class="btn" data-act="add-staff" type="button">+ Give access</button></div>
-      <div class="panel">${S.staffList.map(x => `<div class="staffrow"><span><strong>${esc(x.id)}</strong> <span class="note">${x.role === "owner" ? "Owner" : "Staff"}${x.id === S.me.email ? " · you" : ""}</span></span>
+      <div class="panel">${S.staffList.map(x => `<div class="staffrow"><span><strong>${esc(x.id)}</strong> <span class="note">${x.role === "owner" ? "Owner" : x.role === "cleaner" ? `Cleaner (team app) · ${esc(empName(x.employeeId))}` : "Office (full access)"}${x.id === S.me.email ? " · you" : ""}</span></span>
         ${x.id === S.me.email ? "" : `<button class="btn danger small" data-act="remove-staff" data-id="${esc(x.id)}" type="button">Remove</button>`}</div>`).join("")}
-      <p class="note" style="margin-top:10px">Customers never need an account. They book on the public site.</p></div>
+      <p class="note" style="margin-top:10px">Owner and office accounts use this dashboard. Cleaners use the team app (team.html). Customers never need an account to book, and can see their bookings at My bookings (my.html).</p></div>
     </section>`;
   }
 
@@ -464,6 +482,19 @@ a.btn { color: inherit; }
             <button class="btn danger small" data-act="decline-online" data-id="${esc(j.id)}" type="button">Decline</button></div>
         </div>`;
       }).join("")}</div></section>`;
+  }
+
+  function requestsPanel() {
+    const jobs = S.jobs.filter(j => j.request && (j.status === "new" || j.status === "scheduled")).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    if (!jobs.length) return "";
+    return `<section><div class="section-head"><div><div class="eyebrow">From My bookings</div><h2>Customer requests (${jobs.length})</h2></div></div>
+      <div class="cards">${jobs.map(j => { const c = jobClient(j), r = j.request;
+        return `<div class="panel online"><div class="top-row"><h3>${esc(c?.name || "Customer")}</h3><span class="pill new">${r.type === "cancel" ? "Wants to cancel" : "Wants a change"}</span></div>
+          <div><strong>${esc(fmtDay(parseYmd(j.date)))}</strong> · ${esc(fmtTime(j.start))} · ${esc(j.service || "")}</div>
+          ${r.note ? `<div>“${esc(r.note)}”</div>` : ""}
+          <div class="quick" style="border-radius:8px;border:1px solid var(--line)">${contactLinks(c, `Hi ${firstName(c?.name)}, `)}</div>
+          <div class="actions">${r.type === "cancel" ? `<button class="btn danger small" data-act="req-cancel" data-id="${esc(j.id)}" type="button">Cancel the booking</button>` : `<button class="btn small" data-act="edit-job" data-id="${esc(j.id)}" type="button">Change the job</button>`}
+            <button class="btn small" data-act="req-clear" data-id="${esc(j.id)}" type="button">Mark handled</button></div></div>`; }).join("")}</div></section>`;
   }
 
   function remindersPanel() {
@@ -504,7 +535,7 @@ a.btn { color: inherit; }
     const unassigned = live.filter(j => j.date >= today && j.status === "scheduled" && !(j.staff || []).length).length;
     const upcoming = live.filter(j => j.date > today && j.status === "scheduled").sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start)).slice(0, 6);
 
-    return `${onlinePanel()}
+    return `${requestsPanel()}${onlinePanel()}
     <section>
       <div class="section-head"><div><div class="eyebrow">${esc(now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }))}</div><h2>Today at a glance</h2></div>
       ${S.canWrite ? `<button class="btn primary" data-act="new-job" data-date="${today}" type="button">+ Book a job</button>` : ""}</div>
@@ -612,6 +643,7 @@ a.btn { color: inherit; }
         const todayJobs = S.jobs.filter(j => j.date === ymd(new Date()) && j.status !== "cancelled" && (j.staff || []).includes(e.id)).length;
         return `<div class="panel emp">
           <div class="top-row"><h3>${esc(e.name)}</h3>${e.active === false ? `<span class="pill off">Inactive</span>` : open ? `<span class="pill on">Working</span>` : `<span class="pill off">Off</span>`}</div>
+          ${e.appEmail ? `<div class="note">Team app: ${esc(e.appEmail)}</div>` : ""}
           <div class="since">${open ? `Clocked in at ${esc(fmtClock(new Date(open.in)))} · ${hrs(shiftHours(open))} h` : `${todayJobs} ${todayJobs === 1 ? "job" : "jobs"} today`}${e.phone ? ` · ${esc(e.phone)}` : ""}</div>
           <div class="actions">${S.canWrite && e.active !== false ? (open ? `<button class="btn ok" data-act="clock-out" data-id="${esc(open.id)}" type="button">Clock out</button>` : `<button class="btn primary" data-act="clock-in" data-id="${esc(e.id)}" type="button">Clock in</button>`) : ""}
           ${S.canWrite ? `<button class="btn small" data-act="edit-emp" data-id="${esc(e.id)}" type="button">Edit</button>` : ""}</div>
@@ -949,7 +981,11 @@ a.btn { color: inherit; }
         rate: fd.get("rate") === "" ? "" : Number(fd.get("rate")), frequency: fd.get("frequency"), notes: fd.get("notes").trim(), updatedAt: new Date().toISOString() };
       if (c.example) body.example = true;
       if (isNew) await guard(S.db.collection("clients").add({ ...body, createdAt: body.updatedAt }), "Client added");
-      else await guard(S.db.doc("clients/" + c.id).set({ ...body, createdAt: c.createdAt || body.updatedAt }), "Client saved");
+      else {
+        await guard(S.db.doc("clients/" + c.id).set({ ...body, createdAt: c.createdAt || body.updatedAt }), "Client saved");
+        const local = byId(S.clients, c.id); if (local) Object.assign(local, body);
+        syncSites(S.jobs.filter(j => j.clientId === c.id && j.date >= ymd(addDays(new Date(), -60)))).catch(() => {});
+      }
     }, isNew || !S.canWrite ? null : async () => {
       if (S.jobs.some(j => j.clientId === c.id && j.status === "scheduled" && j.date >= ymd(new Date()))) { toast("Cancel or delete this client's upcoming jobs first."); return false; }
       await guard(S.db.doc("clients/" + c.id).delete(), "Client deleted");
@@ -963,6 +999,7 @@ a.btn { color: inherit; }
       <div class="grid2">${field("Phone", `<input name="phone" id="e-phone" type="tel" value="${esc(e.phone)}">`)}<p class="note" style="align-self:end">Paid ${bizCfg().cleanerShare}% of each job they finish (change in Settings).</p></div>
       <div class="field"><span class="lbl">Days they work</span><div class="checks">${DOW.map(([i, d]) => `<label><input type="checkbox" name="days" value="${i}" ${(e.days || DEFAULT_DAYS).includes(i) ? "checked" : ""}> ${d}</label>`).join("")}</div></div>
       <div class="grid2">${field("Available from", `<input type="time" name="from" id="e-from" value="${esc(e.from || bizCfg().open)}" step="900">`)}${field("Until", `<input type="time" name="to" id="e-to" value="${esc(e.to || bizCfg().close)}" step="900">`)}</div>
+      ${S.role === "owner" ? field("Team app email (lets them sign in to see their own jobs)", `<input name="appEmail" id="e-appemail" type="email" value="${esc(e.appEmail || "")}" placeholder="Leave empty for no app access">`) : ""}
       <div class="checks"><label><input type="checkbox" name="active" id="e-active" ${e.active !== false ? "checked" : ""}> Currently working for us</label></div>
       <p class="note">Booking only offers this person on their work days and hours. Inactive team members keep their past hours but drop off the crew list.</p>
     `, async fd => {
@@ -973,6 +1010,17 @@ a.btn { color: inherit; }
         days: fd.getAll("days").map(Number), from: fd.get("from") || bizCfg().open, to: fd.get("to") || bizCfg().close, updatedAt: new Date().toISOString() };
       const ref = isNew ? S.db.collection("employees").doc() : S.db.doc("employees/" + e.id);
       const batch = S.db.batch();
+      if (S.role === "owner") {
+        const appEmail = (fd.get("appEmail") || "").trim().toLowerCase(), old = (e.appEmail || "").toLowerCase();
+        if (appEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(appEmail)) return "Enter a valid team app email, or leave it empty.";
+        const taken = S.staffList.find(x => x.id === appEmail && (x.role !== "cleaner" || x.employeeId !== ref.id));
+        if (appEmail && taken) return taken.role === "cleaner" ? "That email is already linked to another cleaner." : "That email already has office access. Use a different email for the team app.";
+        if (old && old !== appEmail && S.staffList.some(x => x.id === old && x.role === "cleaner")) batch.delete(S.db.doc("staff/" + old));
+        // Inactive cleaners lose app access.
+        if (appEmail && body.active) batch.set(S.db.doc("staff/" + appEmail), { role: "cleaner", employeeId: ref.id, name, addedBy: S.me.email, addedAt: new Date().toISOString() });
+        else if (appEmail) batch.delete(S.db.doc("staff/" + appEmail));
+        body.appEmail = appEmail;
+      } else if (e.appEmail) body.appEmail = e.appEmail;
       batch.set(ref, body);
       // What customers see on the booking site: first name and working hours only.
       batch.set(S.db.doc("publicCleaners/" + ref.id), { name: name.split(/\s+/)[0], days: body.days, fromMin: mins(body.from), toMin: mins(body.to), active: body.active });
@@ -981,6 +1029,7 @@ a.btn { color: inherit; }
       if (S.shifts.some(s => s.employeeId === e.id)) { toast("This person has logged hours. Mark them inactive instead."); return false; }
       const batch = S.db.batch();
       batch.delete(S.db.doc("employees/" + e.id)); batch.delete(S.db.doc("publicCleaners/" + e.id));
+      if (e.appEmail && S.role === "owner") batch.delete(S.db.doc("staff/" + e.appEmail));
       await guard(batch.commit(), "Team member removed");
     });
   }
@@ -1116,7 +1165,7 @@ a.btn { color: inherit; }
       const clientId = j.clientId || await clientFromCustomer(j.customer);
       if (!clientId) { el.disabled = false; return; }
       const cl = byId(S.clients, clientId);
-      await guard(S.db.doc("jobs/" + j.id).update({ clientId, status: "scheduled", price: Number(j.price) || Number(cl?.rate) || SERVICE_FROM[j.service] || 0, updatedAt: new Date().toISOString() }),
+      await guard(S.db.doc("jobs/" + j.id).update({ clientId, ...siteFields({ clientId }), status: "scheduled", price: Number(j.price) || Number(cl?.rate) || SERVICE_FROM[j.service] || 0, updatedAt: new Date().toISOString() }),
         "Confirmed. Check the price, then let the customer know.");
       return;
     }
@@ -1127,10 +1176,19 @@ a.btn { color: inherit; }
       await guard(writeJob(j.id, { ...stripId(j), status: "cancelled", updatedAt: new Date().toISOString() }, j), "Declined. That time is open again.");
       return;
     }
+    if (act === "req-cancel") {
+      const j = byId(S.jobs, id); if (!j) return;
+      if (!el.classList.contains("armed")) { el.classList.add("armed"); el.textContent = "Tap again to cancel it"; return; }
+      el.disabled = true;
+      const { request, ...rest } = stripId(j);
+      await guard(writeJob(j.id, { ...rest, status: "cancelled", updatedAt: new Date().toISOString() }, j), "Cancelled. That time is open again. Let the customer know.");
+      return;
+    }
+    if (act === "req-clear") { el.disabled = true; await guard(S.db.doc("jobs/" + id).update({ request: firebase.firestore.FieldValue.delete() }), "Marked handled"); return; }
     if (act === "add-staff") {
-      openDialog("Give someone staff access", `${field("Their email address", `<input name="email" id="st-email" type="email" placeholder="name@gmail.com or name@hotmail.com" required>`)}
-        <div class="checks"><label><input type="checkbox" name="owner" id="st-owner"> Also let them manage staff access (co-owner)</label></div>
-        <p class="note">They sign in at this page: Gmail/Google accounts use "Sign in with Google", any other email gets a sign-in link by email. Staff can see and change jobs, clients and timesheets.</p>`, async fd => {
+      openDialog("Give someone office access", `${field("Their email address", `<input name="email" id="st-email" type="email" placeholder="name@gmail.com or name@hotmail.com" required>`)}
+        <div class="checks"><label><input type="checkbox" name="owner" id="st-owner"> Also let them manage who has access (co-owner)</label></div>
+        <p class="note">Office access opens this full dashboard: all jobs, clients, pay and money. For cleaners, use <strong>Team &amp; Time → their name → Edit → Team app email</strong> instead, which only shows them their own jobs.</p>`, async fd => {
         const email = fd.get("email").trim().toLowerCase();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return "Enter a valid email address.";
         await guard(S.db.doc("staff/" + email).set({ role: fd.get("owner") === "on" ? "owner" : "staff", addedBy: S.me.email, addedAt: new Date().toISOString() }), "Access added");
@@ -1327,12 +1385,16 @@ a.btn { color: inherit; }
         return;
       }
       S.role = staff.data().role || "staff";
+      if (S.role === "cleaner") { location.replace("team.html" + location.search); return; }
       S.db = db;
       $("#main").innerHTML = `<div class="banner info">Loading your jobs, clients and timesheets…</div>`;
       const sub = (name, q) => q.onSnapshot(snap => {
         S[name] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         S.loaded[name] = true; render();
       }, e => { console.error(e); S.loaded[name] = true; render(); });
+      let synced = false;
+      const trySync = () => { if (synced || !S.loaded.clients || !S.loaded.jobs) return; synced = true; syncSites(S.jobs.filter(j => j.clientId && j.date >= ymd(addDays(new Date(), -60)))).catch(() => {}); };
+      setTimeout(function wait() { if (!synced) { trySync(); if (!synced) setTimeout(wait, 1000); } }, 1500);
       sub("clients", db.collection("clients"));
       sub("employees", db.collection("employees"));
       sub("jobs", db.collection("jobs").orderBy("date", "desc").limit(1000));

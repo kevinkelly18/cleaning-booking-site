@@ -15,7 +15,9 @@
   header.site { background: var(--surface); border-bottom: 1px solid var(--line); }
   header.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding-block: 14px; }
   header.site .name { font-family: var(--f-display); font-weight: 800; font-size: 1.3rem; }
-  header.site .contact { font-size: .9rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  header.site .contact { font-size: .9rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  header.site .contact #contact { display: flex; gap: 14px; flex-wrap: wrap; }
+  header.site .contact a.btn { color: var(--fg); }
   header.site .contact a { color: var(--fg); font-weight: 700; text-decoration: none; }
   .hero { padding-block: 40px 28px; display: grid; gap: 10px; max-width: 760px; }
   .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -.02em; }
@@ -62,7 +64,7 @@
 <body>
 <header class="site"><div class="wrap">
   <span class="name" id="bizName">Kristally Klean</span>
-  <span class="contact" id="contact"></span>
+  <span class="contact"><span id="contact"></span><a class="btn small" href="my.html">My bookings</a></span>
 </div></header>
 
 <main id="main" class="wrap">
@@ -80,7 +82,7 @@
   <section class="info" id="info" hidden></section>
 </main>
 
-<footer><div class="wrap"><span id="foot"></span><a href="admin.html">Staff sign-in</a></div></footer>
+<footer><div class="wrap"><span id="foot"></span><span style="display:flex;gap:14px"><a href="my.html">My bookings</a><a href="team.html">Team sign-in</a><a href="admin.html">Owner</a></span></div></footer>
 <div id="toast" hidden></div>
 
 <script src="vendor/firebase-app-compat.js"></script>
@@ -107,6 +109,7 @@
     form: { name: "", phone: "", email: "", address: "", access: "", notes: "", beds: "", baths: "", often: "One-time", pets: "No pets" }, busy: false, done: null,
   };
   const n0 = new Date(); S.month = new Date(n0.getFullYear(), n0.getMonth(), 1);
+  const validEmail = e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || "").trim());
   const svc = () => S.cfg.services.find(s => s.name === S.service);
 
   function renderHeader() {
@@ -147,7 +150,7 @@
     if (S.cleaner !== "any" && !freeIds.includes(S.cleaner)) S.cleaner = "any";
     const chosen = S.cleaner === "any" ? null : S.cleaners.find(c => c.id === S.cleaner);
     const f = S.form;
-    const ready = s && slot && f.name.trim() && f.phone.trim().length >= 7 && f.address.trim();
+    const ready = s && slot && f.name.trim() && f.phone.trim().length >= 7 && validEmail(f.email) && f.address.trim();
 
     $("#app").innerHTML = `
     <div class="steps" style="margin-bottom:26px">
@@ -186,7 +189,7 @@
         <form class="step" id="details" novalidate><h3><span class="n">5</span>Your details</h3>
           <div class="grid2"><div class="field"><label for="f-name">Your name</label><input id="f-name" data-f="name" autocomplete="name" value="${esc(f.name)}" required maxlength="100"></div>
             <div class="field"><label for="f-phone">Mobile phone</label><input id="f-phone" data-f="phone" type="tel" autocomplete="tel" value="${esc(f.phone)}" required maxlength="30"></div></div>
-          <div class="grid2"><div class="field"><label for="f-email">Email (for your confirmation)</label><input id="f-email" data-f="email" type="email" autocomplete="email" value="${esc(f.email)}" maxlength="120"></div>
+          <div class="grid2"><div class="field"><label for="f-email">Email (to see or change your booking)</label><input id="f-email" data-f="email" type="email" autocomplete="email" value="${esc(f.email)}" required maxlength="120"></div>
             <div class="field"><label for="f-address">Address to clean</label><input id="f-address" data-f="address" autocomplete="street-address" value="${esc(f.address)}" required maxlength="200"></div></div>
           <div class="grid2">
             <div class="field"><label for="f-beds">Bedrooms</label><select id="f-beds" data-f="beds"><option value="">Choose…</option>${["Studio", "1", "2", "3", "4", "5", "6+"].map(v => `<option ${v === f.beds ? "selected" : ""}>${v}</option>`).join("")}</select></div>
@@ -226,7 +229,7 @@
         <div><span>Length</span><span>About ${esc(d.hours)} hours</span></div>
         <div><span>Booking number</span><span style="font-family:var(--f-mono)">${esc(d.id.slice(0, 8).toUpperCase())}</span></div>
       </div></div>
-      <p class="note">We'll contact you at ${esc(d.phone)} to confirm the price.${S.cfg.phone ? ` To change or cancel, call or text ${esc(S.cfg.phone)}.` : ""}</p>
+      <p class="note">We'll contact you at ${esc(d.phone)} to confirm the price. See or change your booking anytime at <a href="my.html">My bookings</a>, signing in with ${esc(d.email)}.${S.cfg.phone ? ` To change or cancel, call or text ${esc(S.cfg.phone)}.` : ""}</p>
       <div class="actions"><a class="btn primary" href="${url}" download="cleaning-${esc(d.date)}.ics">Add to my calendar</a><button class="btn" data-act="again" type="button">Book another cleaning</button></div>
     </section>`;
     window.scrollTo(0, 0);
@@ -260,7 +263,7 @@
     const s = svc(); if (!s || !S.date || S.start == null || S.busy) return;
     const date = S.date, start = S.start; // the live calendar can change while we save
     const f = S.form;
-    if (!f.name.trim() || f.phone.replace(/\D/g, "").length < 7 || !f.address.trim()) { toast("Please fill in your name, phone number and address."); return; }
+    if (!f.name.trim() || f.phone.replace(/\D/g, "").length < 7 || !validEmail(f.email) || !f.address.trim()) { toast("Please fill in your name, phone number, email and address."); return; }
     const slot = slotsOn(date).find(x => x.t === start);
     const free = slot ? slot.free : [];
     if (!free.length) { toast("Sorry, that time was just taken. Please pick another."); S.start = null; return render(); }
@@ -268,7 +271,9 @@
     const order = S.cleaner === "any" ? free : free.filter(c => c.id === S.cleaner);
     S.busy = true; render();
     const blocks = A.blockMins(s.hours, S.cfg.buffer);
-    for (const c of order) {
+    // Older database rules don't know the clientEmail field yet; fall back without it rather than failing.
+    const attempts = [...order.map(c => [c, true]), ...order.map(c => [c, false])];
+    for (const [c, withEmail] of attempts) {
       const ref = db.collection("jobs").doc();
       const holds = A.holdIds(c.id, date, start, blocks);
       const batch = db.batch();
@@ -276,11 +281,12 @@
         source: "online", status: "new", date: date, start: A.hm(start), startMin: start, duration: Number(s.hours), blockMins: blocks,
         service: s.name, staff: [c.id], notes: bookingNotes(f), holds, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         customer: { name: f.name.trim(), phone: f.phone.trim(), email: f.email.trim(), address: f.address.trim(), access: f.access.trim() },
+        ...(withEmail ? { clientEmail: f.email.trim().toLowerCase() } : {}),
       });
       holds.forEach((id, i) => batch.set(db.collection("holds").doc(id), { jobId: ref.id, cleanerId: c.id, date: date, t: start + i * A.HOLD }));
       try {
         await batch.commit();
-        S.done = { id: ref.id, first: f.name.trim().split(/\s+/)[0], service: s.name, date: date, startMin: start, hours: s.hours, cleaner: c.name, address: f.address.trim(), phone: f.phone.trim() };
+        S.done = { id: ref.id, first: f.name.trim().split(/\s+/)[0], service: s.name, date: date, startMin: start, hours: s.hours, cleaner: c.name, address: f.address.trim(), phone: f.phone.trim(), email: f.email.trim().toLowerCase() };
         S.busy = false; return render();
       } catch (e) {
         if (e.code !== "permission-denied") { S.busy = false; render(); toast("We couldn't reach the booking system. Check your connection and try again."); return; }
@@ -303,7 +309,7 @@
     const k = ev.target.dataset.f; if (!k || k === "cleaner") return;
     S.form[k] = ev.target.value;
     const s = svc(), f = S.form, btn = $("#bookBtn");
-    if (btn) btn.disabled = !(s && S.start != null && f.name.trim() && f.phone.trim().length >= 7 && f.address.trim()) || S.busy;
+    if (btn) btn.disabled = !(s && S.start != null && f.name.trim() && f.phone.trim().length >= 7 && validEmail(f.email) && f.address.trim()) || S.busy;
   });
   document.addEventListener("change", ev => { if (ev.target.dataset.f === "cleaner") { S.cleaner = ev.target.value; render(); } });
   document.addEventListener("submit", ev => { ev.preventDefault(); book(); });

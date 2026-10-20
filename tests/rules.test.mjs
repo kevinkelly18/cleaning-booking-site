@@ -1,6 +1,6 @@
 // Security-rule tests. Run with: npm test (starts the Firestore emulator).
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, getDocs, setDoc, collection, writeBatch, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, getDocs, setDoc, updateDoc, collection, writeBatch, serverTimestamp, deleteDoc, query, where } from "firebase/firestore";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import test, { before, after, beforeEach } from "node:test";
@@ -29,6 +29,11 @@ beforeEach(async () => {
     await setDoc(doc(db, "clients/c1"), { name: "Private Client", phone: "555" });
     await setDoc(doc(db, "employees/maria"), { name: "Maria Lopez", rate: 20 });
     await setDoc(doc(db, "public/settings"), { name: "Test Cleaners" });
+    await setDoc(doc(db, "staff/cleaner@example.com"), { role: "cleaner", employeeId: "maria" });
+    await setDoc(doc(db, "employees/dev"), { name: "Dev Patel" });
+    await setDoc(doc(db, "jobs/j1"), { date: future, start: "10:00", status: "scheduled", price: 150, staff: ["maria"], clientId: "c1", clientEmail: "pat@example.com", site: { name: "Pat", address: "1 Main St" } });
+    await setDoc(doc(db, "jobs/j2"), { date: future, start: "13:00", status: "scheduled", price: 200, staff: ["dev"], clientId: "c2", clientEmail: "sam@example.com" });
+    await setDoc(doc(db, "shifts/s-dev"), { employeeId: "dev", in: "2026-10-01T13:00:00Z", out: null, note: "" });
   });
 });
 
@@ -43,7 +48,7 @@ function booking(db, { cleaner = "maria", date = future, start = 600, hours = 2,
   const ref = doc(collection(db, "jobs"));
   const b = writeBatch(db);
   b.set(ref, { source: "online", status: "new", date, start: A.hm(start), startMin: start, duration: hours, blockMins: blocks,
-    service: "Standard clean", staff: [cleaner], customer, notes: "", holds, createdAt: serverTimestamp(), ...extra });
+    service: "Standard clean", staff: [cleaner], customer, notes: "", holds, createdAt: serverTimestamp(), clientEmail: customer.email, ...extra });
   holds.forEach((id, i) => { if (!skipHolds.includes(i)) b.set(doc(db, "holds", id), { jobId: ref.id, cleanerId: cleaner, date, t: start + i * 15 }); });
   return b.commit();
 }
@@ -120,4 +125,49 @@ test("only the owner manages the staff list", async () => {
   const owner = user("owner@example.com");
   await assertSucceeds(setDoc(doc(owner, "staff/new@example.com"), { role: "staff" }));
   await assertSucceeds(deleteDoc(doc(owner, "staff/new@example.com")));
+});
+
+test("customer bookings must carry the customer's own email", async () => {
+  await assertFails(booking(anon(), { extra: { clientEmail: "someone-else@example.com" } }));
+});
+
+test("cleaners see and update only their own jobs", async () => {
+  const c = user("cleaner@example.com");
+  await assertSucceeds(getDocs(query(collection(c, "jobs"), where("staff", "array-contains", "maria"))));
+  await assertSucceeds(getDoc(doc(c, "jobs/j1")));
+  await assertFails(getDoc(doc(c, "jobs/j2")));
+  await assertFails(getDocs(collection(c, "jobs")));
+  await assertFails(getDocs(query(collection(c, "jobs"), where("staff", "array-contains", "dev"))));
+  await assertFails(getDoc(doc(c, "clients/c1")));
+  await assertFails(getDocs(collection(c, "employees")));
+  await assertSucceeds(getDoc(doc(c, "employees/maria")));
+  await assertFails(getDoc(doc(c, "staff/owner@example.com")));
+  await assertFails(updateDoc(doc(c, "jobs/j1"), { price: 1 }));
+  await assertFails(updateDoc(doc(c, "jobs/j2"), { status: "done" }));
+  await assertSucceeds(updateDoc(doc(c, "jobs/j1"), { status: "done", doneBy: "cleaner@example.com" }));
+  await assertFails(setDoc(doc(c, "public/settings"), { name: "x" }));
+});
+
+test("cleaners clock themselves in and out, nobody else", async () => {
+  const c = user("cleaner@example.com");
+  await assertSucceeds(setDoc(doc(c, "shifts/s1"), { employeeId: "maria", in: "2026-10-20T13:00:00Z", out: null, note: "" }));
+  await assertSucceeds(updateDoc(doc(c, "shifts/s1"), { out: "2026-10-20T16:00:00Z" }));
+  await assertFails(updateDoc(doc(c, "shifts/s1"), { in: "2026-10-20T08:00:00Z" }));
+  await assertFails(setDoc(doc(c, "shifts/s2"), { employeeId: "dev", in: "2026-10-20T13:00:00Z", out: null, note: "" }));
+  await assertSucceeds(getDocs(query(collection(c, "shifts"), where("employeeId", "==", "maria"))));
+  await assertFails(getDocs(collection(c, "shifts")));
+  await assertFails(getDoc(doc(c, "shifts/s-dev")));
+});
+
+test("customers see only their own bookings and can only ask to cancel or change", async () => {
+  const pat = user("pat@example.com");
+  await assertSucceeds(getDocs(query(collection(pat, "jobs"), where("clientEmail", "==", "pat@example.com"))));
+  await assertFails(getDocs(query(collection(pat, "jobs"), where("clientEmail", "==", "sam@example.com"))));
+  await assertFails(getDoc(doc(pat, "jobs/j2")));
+  await assertFails(getDoc(doc(user("pat@example.com", false), "jobs/j1")));
+  await assertFails(updateDoc(doc(pat, "jobs/j1"), { status: "cancelled" }));
+  await assertFails(updateDoc(doc(pat, "jobs/j1"), { request: { type: "refund", note: "", at: serverTimestamp() } }));
+  await assertSucceeds(updateDoc(doc(pat, "jobs/j1"), { request: { type: "cancel", note: "Away that week", at: serverTimestamp() } }));
+  await assertFails(getDoc(doc(pat, "clients/c1")));
+  await assertFails(getDocs(collection(pat, "jobs")));
 });

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Team · Kristally Klean</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<style>
+  header.site { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+  header.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding-block: 12px; }
+  header.site .name { font-family: var(--f-display); font-weight: 800; font-size: 1.2rem; }
+  header.site nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .85rem; }
+  main { padding-block: 22px 64px; display: grid; gap: 26px; max-width: 820px; }
+  .signin { display: grid; gap: 14px; }
+  .clock { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .clock .big { font-family: var(--f-display); font-size: 1.5rem; font-weight: 800; }
+  .clock.on { border-color: var(--ok); background: var(--ok-soft); }
+  .job { display: grid; gap: 8px; border-left: 4px solid var(--accent); }
+  .job.done { border-left-color: var(--ok); opacity: .85; }
+  .job .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .job h3 { font-size: 1.1rem; }
+  .job .when { font-family: var(--f-mono); font-size: .85rem; color: var(--muted); }
+  .job .addr { font-size: .95rem; }
+  .job .access { background: var(--warn-soft); color: var(--warn); padding: 6px 10px; border-radius: 8px; font-size: .9rem; }
+  .job .notes { white-space: pre-line; font-size: .9rem; color: var(--muted); }
+  .job .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  a.btn { color: inherit; }
+  .pill { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 3px 9px; border-radius: 999px; }
+  .pill.done { background: var(--ok-soft); color: var(--ok); }
+  .pill.scheduled { background: var(--accent-soft); color: var(--accent); }
+  .list { display: grid; gap: 12px; }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+  .stat .v { font-family: var(--f-display); font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stat .l { color: var(--muted); font-size: .82rem; }
+  .upc { display: grid; gap: 0; }
+  .upc details { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  .upc details:last-child { border-bottom: 0; }
+  .upc summary { cursor: pointer; display: flex; justify-content: space-between; gap: 10px; }
+  .upc details .job { margin-top: 10px; }
+  .weeknav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<header class="site"><div class="wrap">
+  <span class="name" id="bizName">Kristally Klean</span>
+  <nav><span id="me" class="note"></span><button class="btn small" id="pwBtn" type="button" hidden>Password</button><button class="btn small" id="signOut" type="button" hidden>Sign out</button></nav>
+</div></header>
+<main class="wrap" id="main"><div class="empty">Loading…</div></main>
+<div id="toast" hidden></div>
+
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-auth-compat.js"></script>
+<script src="vendor/firebase-firestore-compat.js"></script>
+<script src="js/config.js"></script>
+<script src="js/availability.js"></script>
+<script src="js/auth.js"></script>
+<script>
+(() => {
+  const A = window.Avail;
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const money = n => "$" + (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const fmtTime = hm => { if (!hm) return ""; const [h, m] = hm.split(":").map(Number); return ((h % 12) || 12) + ":" + A.pad(m) + (h < 12 ? " am" : " pm"); };
+  const clockTime = iso => { const d = new Date(iso); return fmtTime(A.pad(d.getHours()) + ":" + A.pad(d.getMinutes())); };
+  const dayLabel = ds => A.parseYmd(ds).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const endTime = j => { const t = A.mins(j.start) + Math.round((Number(j.duration) || 0) * 60); return fmtTime(A.hm(t % 1440)); };
+  const mondayOf = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const hrs = n => (Math.round(n * 100) / 100).toFixed(2);
+  const shiftHours = s => Math.max(0, ((s.out ? Date.parse(s.out) : Date.now()) - Date.parse(s.in)) / 3600000);
+  const digits = p => String(p || "").replace(/[^\d+]/g, "");
+  let toastT; const toast = m => { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3500); };
+  const show = html => { $("#main").innerHTML = html; };
+
+  const fb = window.startFirebase();
+  if (!fb) { show(`<div class="banner info">This page isn't connected yet.</div>`); return; }
+  const db = fb.db, auth = firebase.auth();
+  const S = { cfg: A.settings(null), names: {}, jobs: [], shifts: [], me: null, emp: null, week: mondayOf(new Date()), pw: false, loaded: { jobs: false, shifts: false } };
+
+  db.doc("public/settings").get().then(x => { S.cfg = A.settings(x.exists ? x.data() : null); $("#bizName").textContent = S.cfg.name; render(); }).catch(() => {});
+  db.collection("publicCleaners").get().then(q => { q.docs.forEach(d => S.names[d.id] = d.data().name); render(); }).catch(() => {});
+
+  const signIn = SignIn.setup({ auth, show, toast, title: "Team sign-in", intro: "For Kristally Klean cleaners. Use the email the owner gave access to." });
+  $("#signOut").addEventListener("click", () => auth.signOut().then(() => location.reload()));
+  $("#pwBtn").addEventListener("click", () => { S.pw = !S.pw; render(); if (S.pw) $("#pw1")?.focus(); });
+
+  const unsubs = [];
+  auth.onAuthStateChanged(async u => {
+    unsubs.splice(0).forEach(f => f());
+    if (!u) {
+      $("#me").textContent = ""; $("#signOut").hidden = true; $("#pwBtn").hidden = true;
+      if (signIn.pending) { signIn.pending = false; return; }
+      signIn.show(); return;
+    }
+    const email = (u.email || "").toLowerCase();
+    $("#me").textContent = email; $("#signOut").hidden = false; $("#pwBtn").hidden = false;
+    if (!u.emailVerified) { signIn.needsVerify(email); return; }
+    let staff = null;
+    try { staff = await db.doc("staff/" + email).get(); } catch (e) {}
+    const data = staff?.exists ? staff.data() : null;
+    if (data && (data.role === "owner" || data.role === "staff")) {
+      show(`<section class="panel signin"><h2>You're signed in as the owner</h2><p>This page is for cleaners. Your full dashboard is here:</p><div><a class="btn primary" href="admin.html${location.search}">Open the owner dashboard</a></div></section>`); return;
+    }
+    if (!data || data.role !== "cleaner" || !data.employeeId) {
+      show(`<section class="panel signin"><h2>This account isn't set up yet</h2><p><strong>${esc(email)}</strong> isn't on the team list. Ask the owner to give you app access in the dashboard (Team &amp; Time → your name → App access).</p></section>`); return;
+    }
+    S.me = { email, emp: data.employeeId };
+    try { const e = await db.doc("employees/" + data.employeeId).get(); S.emp = e.exists ? e.data() : null; } catch (e) {}
+    show(`<div class="empty">Loading your jobs…</div>`);
+    unsubs.push(db.collection("jobs").where("staff", "array-contains", data.employeeId).onSnapshot(q => {
+      S.jobs = q.docs.map(d => ({ id: d.id, ...d.data() })); S.loaded.jobs = true; render();
+    }, () => show(`<div class="banner bad">We couldn't load your jobs. Please refresh.</div>`)));
+    unsubs.push(db.collection("shifts").where("employeeId", "==", data.employeeId).onSnapshot(q => {
+      S.shifts = q.docs.map(d => ({ id: d.id, ...d.data() })); S.loaded.shifts = true; render();
+    }, () => {}));
+  });
+
+  function jobCard(j, opts = {}) {
+    const c = j.site || j.customer || {};
+    const others = (j.staff || []).filter(id => id !== S.me.emp).map(id => S.names[id]).filter(Boolean);
+    const first = String(c.name || "").trim().split(/\s+/)[0] || "there";
+    const sms = `Hi ${first}, it's ${S.emp?.name?.split(/\s+/)[0] || "your cleaner"} from ${S.cfg.name}. I'm on my way and should be there soon!`;
+    return `<article class="panel job ${esc(j.status)}">
+      <div class="top"><h3>${esc(c.name || "Client")}</h3>${j.status === "done" ? `<span class="pill done">Done</span>` : ""}</div>
+      <div class="when">${opts.showDate ? esc(dayLabel(j.date)) + " · " : ""}${esc(fmtTime(j.start))}–${esc(endTime(j))} · ${esc(j.service || "")}</div>
+      ${c.address ? `<div class="addr">${esc(c.address)}</div>` : ""}
+      ${c.access ? `<div class="access">Entry: ${esc(c.access)}</div>` : ""}
+      ${j.notes ? `<div class="notes">${esc(j.notes)}</div>` : ""}
+      ${others.length ? `<div class="note">With ${esc(others.join(" & "))}</div>` : ""}
+      <div class="actions">
+        ${j.status === "scheduled" && j.date <= A.ymd(new Date()) ? `<button class="btn ok" data-act="done" data-id="${esc(j.id)}" type="button">Mark done</button>` : ""}
+        ${c.address ? `<a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}" target="_blank" rel="noopener">Directions</a>` : ""}
+        ${c.phone ? `<a class="btn" href="sms:${esc(digits(c.phone))}?&body=${esc(encodeURIComponent(sms))}">Text “on my way”</a><a class="btn" href="tel:${esc(digits(c.phone))}">Call</a>` : ""}
+      </div></article>`;
+  }
+
+  function render() {
+    if (!S.me || !S.loaded.jobs || !S.loaded.shifts) return;
+    const today = A.ymd(new Date()), in14 = A.ymd(addDays(new Date(), 14));
+    const live = S.jobs.filter(j => j.status === "scheduled" || j.status === "done");
+    const todays = live.filter(j => j.date === today).sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+    const overdue = S.jobs.filter(j => j.status === "scheduled" && j.date < today).sort((a, b) => a.date.localeCompare(b.date));
+    const upcoming = S.jobs.filter(j => j.status === "scheduled" && j.date > today && j.date <= in14).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    const open = S.shifts.find(s => !s.out);
+    const wk0 = S.week, wk1 = addDays(wk0, 7);
+    const inWeek = ds => { const d = A.parseYmd(ds); return d >= wk0 && d < wk1; };
+    const share = S.cfg.cleanerShare / 100;
+    const doneWeek = S.jobs.filter(j => j.status === "done" && inWeek(j.date));
+    const pay = doneWeek.reduce((a, j) => a + (Number(j.price) || 0) * share / Math.max(1, (j.staff || []).length), 0);
+    const hoursWeek = S.shifts.filter(s => { const d = new Date(s.in); return d >= wk0 && d < wk1; }).reduce((a, s) => a + shiftHours(s), 0);
+    const first = (S.emp?.name || "").split(/\s+/)[0];
+    const isThisWeek = wk0.getTime() === mondayOf(new Date()).getTime();
+
+    show(`
+      ${S.pw ? `<form class="panel signin" id="pwForm" novalidate><h2>Set your password</h2><p class="note">Next time, sign in with ${esc(S.me.email)} and this password.</p>
+        <div class="field"><label for="pw1">New password (at least 6 characters)</label><input id="pw1" type="password" autocomplete="new-password"></div>
+        <div class="field"><label for="pw2">Type it again</label><input id="pw2" type="password" autocomplete="new-password"></div>
+        <div style="display:flex;gap:8px"><button class="btn primary" type="submit">Save password</button><button class="btn" id="pwCancel" type="button">Cancel</button></div></form>` : ""}
+      <section class="panel clock ${open ? "on" : ""}">
+        <div><div class="eyebrow">${esc(new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }))}</div>
+          <div class="big">${first ? `Hi ${esc(first)}` : "Hi"}${open ? ` · clocked in at ${esc(clockTime(open.in))}` : ""}</div>
+          ${open ? `<div class="note">${hrs(shiftHours(open))} hours so far</div>` : ""}</div>
+        ${open ? `<button class="btn ok big" data-act="out" data-id="${esc(open.id)}" type="button">Clock out</button>` : `<button class="btn primary big" data-act="in" type="button">Clock in</button>`}
+      </section>
+      ${overdue.length ? `<section><div class="banner info"><span>${overdue.length} earlier ${overdue.length === 1 ? "job isn't" : "jobs aren't"} marked done yet.</span></div><div class="list" style="margin-top:10px">${overdue.map(j => jobCard(j, { showDate: true })).join("")}</div></section>` : ""}
+      <section><h2 style="margin-bottom:10px">Today</h2>
+        <div class="list">${todays.length ? todays.map(j => jobCard(j)).join("") : `<div class="empty">No jobs today.</div>`}</div></section>
+      <section><h2 style="margin-bottom:10px">Next two weeks</h2>
+        ${upcoming.length ? `<div class="panel upc">${upcoming.map(j => `<details><summary><span><strong>${esc(dayLabel(j.date))}</strong> · ${esc(fmtTime(j.start))}</span><span class="note">${esc((j.site || j.customer || {}).name || "")} · ${esc(j.service || "")}</span></summary>${jobCard(j)}</details>`).join("")}</div>` : `<div class="empty">Nothing booked for you yet.</div>`}</section>
+      <section>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+          <h2>${isThisWeek ? "This week" : esc(wk0.toLocaleDateString(undefined, { month: "short", day: "numeric" })) + " – " + esc(addDays(wk0, 6).toLocaleDateString(undefined, { month: "short", day: "numeric" }))}</h2>
+          <div class="weeknav"><button class="btn small" data-act="wk" data-d="-7" type="button" aria-label="Previous week">←</button>${isThisWeek ? "" : `<button class="btn small" data-act="wk" data-d="0" type="button">This week</button>`}<button class="btn small" data-act="wk" data-d="7" type="button" aria-label="Next week">→</button></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="v">${doneWeek.length}</div><div class="l">jobs done</div></div>
+          <div class="stat"><div class="v">${money(pay)}</div><div class="l">your pay (${Math.round(share * 100)}% of jobs)</div></div>
+          <div class="stat"><div class="v">${hrs(hoursWeek)}</div><div class="l">hours clocked</div></div>
+        </div>
+        <p class="note" style="margin-top:8px">Pay counts jobs marked Done. Shared jobs are split evenly between the cleaners.</p>
+      </section>`);
+  }
+
+  document.addEventListener("click", async ev => {
+    const el = ev.target.closest("[data-act]"); if (!el || !S.me) return;
+    const act = el.dataset.act;
+    if (act === "wk") { S.week = el.dataset.d === "0" ? mondayOf(new Date()) : addDays(S.week, Number(el.dataset.d)); return render(); }
+    el.disabled = true;
+    try {
+      if (act === "in") { await db.collection("shifts").add({ employeeId: S.me.emp, in: new Date().toISOString(), out: null, note: "" }); toast("Clocked in"); }
+      if (act === "out") { await db.doc("shifts/" + el.dataset.id).update({ out: new Date().toISOString() }); toast("Clocked out"); }
+      if (act === "done") { await db.doc("jobs/" + el.dataset.id).update({ status: "done", updatedAt: new Date().toISOString(), doneAt: new Date().toISOString(), doneBy: S.me.email }); toast("Marked done. Nice work!"); }
+    } catch (e) { el.disabled = false; toast("That didn't save. Check your connection and try again."); }
+  });
+  document.addEventListener("click", ev => { if (ev.target.closest("#pwCancel")) { S.pw = false; render(); } });
+  document.addEventListener("submit", async ev => {
+    if (ev.target.id !== "pwForm") return;
+    ev.preventDefault();
+    const a = $("#pw1").value, b = $("#pw2").value;
+    if (a.length < 6) return toast("Use at least 6 characters.");
+    if (a !== b) return toast("The two passwords don't match.");
+    try { await auth.currentUser.updatePassword(a); S.pw = false; render(); toast("Password saved. Use it next time you sign in."); }
+    catch (e) { toast(signIn.message(e)); }
+  });
+  setInterval(() => { if (S.me && !document.activeElement?.matches?.("input, textarea")) render(); }, 60000);
+})();
+</script>
+</body>
+</html>

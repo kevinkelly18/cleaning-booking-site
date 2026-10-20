@@ -28,6 +28,17 @@ const errors = [];
 const page = async () => { const p = await browser.newPage(); p.on("pageerror", e => errors.push(e.message)); return p; };
 const base = "http://localhost:5577/";
 
+async function linkSignIn(p, path, email) {
+  await p.goto(base + path + "?emulator");
+  if (await p.locator("#si-link").count() === 0) await p.click("[data-si=link]");
+  await p.fill("#si-email", email);
+  await p.click("#si-link button[type=submit]");
+  await p.waitForSelector("text=We sent a sign-in link");
+  const oob = await (await fetch("http://127.0.0.1:9099/emulator/v1/projects/demo-crew/oobCodes")).json();
+  const code = oob.oobCodes.filter(c => c.email === email && c.requestType === "EMAIL_SIGNIN").at(-1).oobCode;
+  await p.goto(base + path + `?emulator&mode=signIn&oobCode=${code}&apiKey=demo-key&lang=en`);
+}
+
 // 1. Staff signs in and sets up the business and a cleaner.
 const admin = await page();
 await admin.goto(base + "admin.html?emulator");
@@ -43,6 +54,7 @@ await admin.waitForSelector("#bizName:has-text('Sparkle Test Co')");
 await admin.click("[data-tab=team]");
 await admin.click("[data-act=new-emp]");
 await admin.fill("#e-name", "Maria Lopez");
+await admin.fill("#e-appemail", "maria@example.com");
 for (const d of ["0"]) await admin.check(`#dlgForm input[name=days][value="${d}"]`); // also Sundays, so any test day works
 await admin.click("#dlgForm button[type=submit]");
 await admin.waitForSelector(".emp h3:has-text('Maria Lopez')");
@@ -84,8 +96,26 @@ await cust.locator(".cal-day:not([disabled])").first().click();
 const sameSlot = cust.locator(".slot", { hasText: pickedTime }).first();
 assert.equal(await sameSlot.isDisabled(), true, "booked time is no longer offered");
 
+// 3b. Customer signs in to My bookings, sees the booking and asks to change it.
+const mine = await page();
+await linkSignIn(mine, "my.html", "pat@example.com");
+await mine.waitForSelector("text=Your bookings");
+await mine.waitForSelector(".bk:has-text('Waiting for us to confirm')");
+assert.match(await mine.textContent(".bk"), /with Maria/);
+await mine.click("[data-ask=change]");
+await mine.fill("#req-note", "Could we do the afternoon instead?");
+await mine.click("[data-req] button[type=submit]");
+await mine.waitForSelector("text=You asked to change this booking");
+const strangerMine = await page();
+await linkSignIn(strangerMine, "my.html", "nobody@example.com");
+await strangerMine.waitForSelector("text=No upcoming cleanings");
+
 // 4. Staff sees and confirms the online booking.
 await admin.click("[data-tab=overview]");
+await admin.waitForSelector("text=Customer requests (1)");
+assert.match(await admin.textContent("#main"), /Wants a change[\s\S]*Could we do the afternoon instead\?/);
+await admin.click("[data-act=req-clear]");
+await admin.waitForSelector("text=Customer requests", { state: "detached" });
 await admin.waitForSelector(".panel.online:has-text('Pat Customer')");
 assert.match(await admin.textContent(".panel.online"), /Home: 3 bed \/ 2 bath · How often: Every 2 weeks · Pets: Dog\s*Please skip the office/);
 await admin.screenshot({ path: "/tmp/claude-0/-home-user-hockey-dashboards/fcf2d72e-4f9c-52c5-a302-1417875de0d9/scratchpad/shot-admin-online.png", fullPage: true });
@@ -160,6 +190,25 @@ assert.match(csv, /Date,Start,Client,Service,Price,Cleaners,Each cleaner gets,Bu
 assert.match(csv, new RegExp(`Pat Customer,Standard clean,${patPrice}\\.00,.*,E-transfer,\\d{4}-`));
 assert.match(csv, /,150\.00,Maria Lopez,120\.00,30\.00,/); // solo job: 80% to Maria, 20% kept
 await admin.screenshot({ path: "/tmp/claude-0/-home-user/fcf2d72e-4f9c-52c5-a302-1417875de0d9/scratchpad/shot-money.png", fullPage: true });
+
+// 5d. Cleaner signs in to the team app: sees only her jobs and pay, clocks in and out.
+const team = await page();
+await linkSignIn(team, "team.html", "maria@example.com");
+await team.waitForSelector("text=Hi Maria");
+await team.click("[data-act=wk][data-d='-7']"); await team.click("[data-act=wk][data-d='0']");
+const teamText = (await team.textContent("#main")).replace(/\s+/g, " ");
+assert.match(teamText, /2\s*jobs done/, teamText.slice(0, 400));
+assert.match(teamText, /\$200\s*your pay \(80% of jobs\)/);
+assert.doesNotMatch(teamText, /\$350|business/i, "cleaner doesn't see business totals");
+await team.click("[data-act=in]");
+await team.waitForSelector("[data-act=out]");
+await team.click("[data-act=out]");
+await team.waitForSelector("[data-act=in]");
+await team.screenshot({ path: "/tmp/claude-0/-home-user/fcf2d72e-4f9c-52c5-a302-1417875de0d9/scratchpad/shot-team.png", fullPage: true });
+// The owner page sends cleaners to the team app.
+await team.goto(base + "admin.html?emulator");
+await team.waitForURL(/team\.html/);
+await mine.screenshot({ path: "/tmp/claude-0/-home-user/fcf2d72e-4f9c-52c5-a302-1417875de0d9/scratchpad/shot-my.png", fullPage: true });
 
 // 6. Owner gives access to a non-Google email; that person signs in with an emailed link.
 await admin.click("[data-tab=team]");

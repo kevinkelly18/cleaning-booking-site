@@ -1,9 +1,15 @@
 # Kristally Klean website
 
-Two pages:
+Three parts, each with its own sign-in:
 
-- **`index.html` — booking site for customers.** Customers pick a service, a day on the calendar, an open time and a cleaner from a dropdown of who's free, then enter their details. No account needed. Their booking goes straight onto your schedule and blocks that cleaner's time so nobody else can take it.
-- **`admin.html` — the staff app, for you and your staff.** Sign in with Google. Confirm or decline online bookings, book jobs yourself, keep client details, set each cleaner's work days and hours, clock in/out, and see weekly timesheets with estimated pay.
+| Who | Page | What they can do |
+|---|---|---|
+| **Customers** | `index.html` (book) and `my.html` (My bookings) | Book a cleaning with no account. Later, sign in with just their email to see upcoming and past cleanings and ask to cancel or change one. They never see anyone else's data. |
+| **Cleaners** | `team.html` | See only the jobs they're assigned to (address, entry notes, call/text/directions), mark jobs done, clock in and out, and see their own hours and pay. |
+| **Owner / office** | `admin.html` | Everything: schedule, clients, team, pay, payments, Money reports, settings, and who has access. |
+
+Give a cleaner access in the owner dashboard: **Team & Time → their name → Edit → Team app email**.
+Office/co-owner access: **Team & Time → Staff access → Give access**.
 
 It runs on two free services:
 
@@ -21,7 +27,7 @@ It runs on two free services:
 ### 2. Turn on the database
 1. In the left menu: **Build → Firestore Database → Create database**.
 2. Pick a location close to you, choose **Start in production mode**, click **Create**.
-3. Open the **Rules** tab, delete what's there, paste the whole contents of **`firestore.rules`** from this repository, and click **Publish**.
+3. Open the **Rules** tab, delete what's there, paste the whole contents of **`firestore.rules`** from this repository, and click **Publish**. Do this again whenever `firestore.rules` changes.
 
 ### 3. Turn on staff sign-in
 1. **Build → Authentication → Get started → Sign-in method → Google → Enable**, choose your support email, **Save**.
